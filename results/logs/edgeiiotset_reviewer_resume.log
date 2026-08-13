@@ -1,0 +1,173 @@
+23:46:22 | INFO    | src.pipeline | [edgeiiotset] Preparing dataset (Delta t = 60s, mapping='primary')...
+23:46:22 | INFO    | src.data.base_adapter | Reading /mnt/c/Users/kumar2_m/iiot-gnn-ids/data/raw/edgeiiotset/ML-EdgeIIoT-dataset.csv ...
+23:46:25 | INFO    | src.data.base_adapter | Loaded 157,800 rows, 63 raw columns from 1 file(s).
+23:46:25 | INFO    | src.data.generic_adapter | [edgeiiotset] Matched identity/label columns: {'timestamp': 'frame.time', 'src_id': 'ip.src_host', 'dst_id': 'ip.dst_host', 'binary_label': 'Attack_label', 'attack_type': 'Attack_type'}
+/mnt/c/Users/kumar2_m/iiot-gnn-ids/src/data/edgeiiotset_adapter.py:64: UserWarning: This pattern is interpreted as a regular expression, and has match groups. To actually get the groups, use str.extract.
+  has_real_date = raw_str.str.contains(_MONTH_RE) | raw_str.str.contains(_DATE_NUMERIC_RE)
+/mnt/c/Users/kumar2_m/iiot-gnn-ids/src/data/edgeiiotset_adapter.py:68: UserWarning: Could not infer format, so each element will be parsed individually, falling back to `dateutil`. To ensure parsing is consistent and as-expected, please specify a format.
+  return pd.to_datetime(raw_str, errors="coerce")
+23:46:43 | WARNING | src.data.generic_adapter | [edgeiiotset] Dropped 15,705 / 157,800 rows with unparseable timestamp or missing asset id.
+23:46:43 | WARNING | src.data.generic_adapter | [edgeiiotset] Impact forecasting will be SKIPPED for edgeiiotset: only 0.0% of rows have a genuine calendar date (month/day) in `frame.time` (< required 95.0%) -- the published ML-EdgeIIoT-dataset.csv is missing month/day for essentially every row (naive pandas parsing silently defaults it to Jan-1, which is NOT a real timestamp); real chronological Delta-t windowing, temporal graph edges, and pre-impact sequence construction are not valid on this field.
+23:46:43 | WARNING | src.data.generic_adapter | [edgeiiotset] Falling back to RECORD-LEVEL (non-windowed) instances for edgeiiotset stage detection + graph construction: one node per raw record (asset-level aggregation was rejected -- it collapses ~99.9% of assets to the worst-ever IMP class on this dataset), interaction edges built from real observed src/dst pairs (window/time-independent, via one representative node per asset), temporal edges discarded (no trustworthy chronological order). See timestamp_calendar_date_frac.
+23:46:43 | INFO    | src.data.generic_adapter | [edgeiiotset] Data quality: {'n_rows_raw': 157800, 'n_rows_kept': 142095, 'n_distinct_assets': 17687, 'timestamp_parseable_frac': 0.9004752851711026, 'has_peer_id': True, 'attack_type_source': 'column', 'timestamp_parseable_frac_naive': 0.9004752851711026, 'timestamp_calendar_date_frac': 0.0, 'timestamp_reliable_for_windowing': False, 'impact_forecasting_valid': False, 'impact_forecasting_invalid_reasons': ['only 0.0% of rows have a genuine calendar date (month/day) in `frame.time` (< required 95.0%) -- the published ML-EdgeIIoT-dataset.csv is missing month/day for essentially every row (naive pandas parsing silently defaults it to Jan-1, which is NOT a real timestamp); real chronological Delta-t windowing, temporal graph edges, and pre-impact sequence construction are not valid on this field.'], 'window_sensitivity_valid': False, 'window_sensitivity_invalid_reason': 'frame.time lacks a real calendar date for 100.0% of rows; sweeping Delta-t is meaningless without trustworthy absolute time.'}
+23:46:43 | WARNING | src.pipeline | [edgeiiotset] timestamp_reliable_for_windowing=False -- using RECORD-LEVEL (non-windowed) instances instead of Delta-t=60s windowing.
+/mnt/c/Users/kumar2_m/iiot-gnn-ids/src/preprocessing/windowing.py:128: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  windows_df = pd.concat([n_records, stats, *mode_frames, stage_series], axis=1).reset_index()
+/mnt/c/Users/kumar2_m/iiot-gnn-ids/src/preprocessing/windowing.py:128: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  windows_df = pd.concat([n_records, stats, *mode_frames, stage_series], axis=1).reset_index()
+23:46:49 | WARNING | src.graph.graph_builder | Interaction records exist, but none connect two assets that BOTH have a node in that window (peers are all non-monitored hosts) — interaction edge set is empty.
+23:46:53 | INFO    | src.graph.graph_builder | Graph built: 142,095 nodes | 0 interaction-edge endpoints | 248,816 temporal-edge endpoints
+23:46:53 | WARNING | src.pipeline | [edgeiiotset] Discarded 248,816 row-order-derived pseudo-temporal edge endpoints (no trustworthy timestamp for this dataset) -- interaction-only graph.
+23:46:53 | INFO    | src.pipeline | [edgeiiotset] Record-level fallback interaction graph: 35,370 representative-node edge endpoints (asset-pair communication, window/time-independent).
+23:46:53 | INFO    | src.pipeline | [edgeiiotset] Prepared 142,095 window instances (68,301 train / 10,804 val / 62,990 test), 175 features.
+23:46:53 | INFO    | run_reviewer_experiments | [graph ablation] mode = interaction_only
+23:46:53 | INFO    | src.training.stage_detector_trainer | Fitting final Random Forest on full train split...
+23:47:04 | INFO    | src.training.stage_detector_trainer | Fitting final GCN on full train split (transductive forward pass over full graph)...
+23:47:13 | INFO    | src.training.stage_detector_trainer | Generating out-of-fold stacking features with 3-fold asset-disjoint CV...
+23:47:19 | INFO    | src.training.stage_detector_trainer |   fold 1/3: 47686 held-out train instances scored
+23:47:32 | INFO    | src.training.stage_detector_trainer |   fold 2/3: 10308 held-out train instances scored
+23:47:47 | INFO    | src.training.stage_detector_trainer |   fold 3/3: 10307 held-out train instances scored
+23:47:47 | INFO    | src.training.stage_detector_trainer | Fitting stacking meta-learner (type=logistic_regression)...
+23:47:54 | INFO    | run_reviewer_experiments | [graph ablation] mode = temporal_only
+23:47:54 | INFO    | src.training.stage_detector_trainer | Fitting final Random Forest on full train split...
+23:48:05 | INFO    | src.training.stage_detector_trainer | Fitting final GCN on full train split (transductive forward pass over full graph)...
+23:48:14 | INFO    | src.training.stage_detector_trainer | Generating out-of-fold stacking features with 3-fold asset-disjoint CV...
+23:48:20 | INFO    | src.training.stage_detector_trainer |   fold 1/3: 47686 held-out train instances scored
+23:48:35 | INFO    | src.training.stage_detector_trainer |   fold 2/3: 10308 held-out train instances scored
+23:48:51 | INFO    | src.training.stage_detector_trainer |   fold 3/3: 10307 held-out train instances scored
+23:48:51 | INFO    | src.training.stage_detector_trainer | Fitting stacking meta-learner (type=logistic_regression)...
+23:48:57 | INFO    | run_reviewer_experiments | [graph ablation] mode = both
+23:48:57 | INFO    | src.training.stage_detector_trainer | Fitting final Random Forest on full train split...
+23:49:09 | INFO    | src.training.stage_detector_trainer | Fitting final GCN on full train split (transductive forward pass over full graph)...
+23:49:17 | INFO    | src.training.stage_detector_trainer | Generating out-of-fold stacking features with 3-fold asset-disjoint CV...
+23:49:23 | INFO    | src.training.stage_detector_trainer |   fold 1/3: 47686 held-out train instances scored
+23:49:36 | INFO    | src.training.stage_detector_trainer |   fold 2/3: 10308 held-out train instances scored
+23:49:51 | INFO    | src.training.stage_detector_trainer |   fold 3/3: 10307 held-out train instances scored
+23:49:51 | INFO    | src.training.stage_detector_trainer | Fitting stacking meta-learner (type=logistic_regression)...
+23:49:57 | INFO    | src.pipeline | [edgeiiotset] Preparing dataset (Delta t = 60s, mapping='primary')...
+23:49:57 | INFO    | src.data.base_adapter | Reading /mnt/c/Users/kumar2_m/iiot-gnn-ids/data/raw/edgeiiotset/ML-EdgeIIoT-dataset.csv ...
+23:50:00 | INFO    | src.data.base_adapter | Loaded 157,800 rows, 63 raw columns from 1 file(s).
+23:50:00 | INFO    | src.data.generic_adapter | [edgeiiotset] Matched identity/label columns: {'timestamp': 'frame.time', 'src_id': 'ip.src_host', 'dst_id': 'ip.dst_host', 'binary_label': 'Attack_label', 'attack_type': 'Attack_type'}
+/mnt/c/Users/kumar2_m/iiot-gnn-ids/src/data/edgeiiotset_adapter.py:64: UserWarning: This pattern is interpreted as a regular expression, and has match groups. To actually get the groups, use str.extract.
+  has_real_date = raw_str.str.contains(_MONTH_RE) | raw_str.str.contains(_DATE_NUMERIC_RE)
+/mnt/c/Users/kumar2_m/iiot-gnn-ids/src/data/edgeiiotset_adapter.py:68: UserWarning: Could not infer format, so each element will be parsed individually, falling back to `dateutil`. To ensure parsing is consistent and as-expected, please specify a format.
+  return pd.to_datetime(raw_str, errors="coerce")
+23:50:23 | WARNING | src.data.generic_adapter | [edgeiiotset] Dropped 15,705 / 157,800 rows with unparseable timestamp or missing asset id.
+23:50:23 | WARNING | src.data.generic_adapter | [edgeiiotset] Impact forecasting will be SKIPPED for edgeiiotset: only 0.0% of rows have a genuine calendar date (month/day) in `frame.time` (< required 95.0%) -- the published ML-EdgeIIoT-dataset.csv is missing month/day for essentially every row (naive pandas parsing silently defaults it to Jan-1, which is NOT a real timestamp); real chronological Delta-t windowing, temporal graph edges, and pre-impact sequence construction are not valid on this field.
+23:50:23 | WARNING | src.data.generic_adapter | [edgeiiotset] Falling back to RECORD-LEVEL (non-windowed) instances for edgeiiotset stage detection + graph construction: one node per raw record (asset-level aggregation was rejected -- it collapses ~99.9% of assets to the worst-ever IMP class on this dataset), interaction edges built from real observed src/dst pairs (window/time-independent, via one representative node per asset), temporal edges discarded (no trustworthy chronological order). See timestamp_calendar_date_frac.
+23:50:23 | INFO    | src.data.generic_adapter | [edgeiiotset] Data quality: {'n_rows_raw': 157800, 'n_rows_kept': 142095, 'n_distinct_assets': 17687, 'timestamp_parseable_frac': 0.9004752851711026, 'has_peer_id': True, 'attack_type_source': 'column', 'timestamp_parseable_frac_naive': 0.9004752851711026, 'timestamp_calendar_date_frac': 0.0, 'timestamp_reliable_for_windowing': False, 'impact_forecasting_valid': False, 'impact_forecasting_invalid_reasons': ['only 0.0% of rows have a genuine calendar date (month/day) in `frame.time` (< required 95.0%) -- the published ML-EdgeIIoT-dataset.csv is missing month/day for essentially every row (naive pandas parsing silently defaults it to Jan-1, which is NOT a real timestamp); real chronological Delta-t windowing, temporal graph edges, and pre-impact sequence construction are not valid on this field.'], 'window_sensitivity_valid': False, 'window_sensitivity_invalid_reason': 'frame.time lacks a real calendar date for 100.0% of rows; sweeping Delta-t is meaningless without trustworthy absolute time.'}
+23:50:23 | WARNING | src.pipeline | [edgeiiotset] timestamp_reliable_for_windowing=False -- using RECORD-LEVEL (non-windowed) instances instead of Delta-t=60s windowing.
+/mnt/c/Users/kumar2_m/iiot-gnn-ids/src/preprocessing/windowing.py:128: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  windows_df = pd.concat([n_records, stats, *mode_frames, stage_series], axis=1).reset_index()
+/mnt/c/Users/kumar2_m/iiot-gnn-ids/src/preprocessing/windowing.py:128: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  windows_df = pd.concat([n_records, stats, *mode_frames, stage_series], axis=1).reset_index()
+23:50:28 | WARNING | src.graph.graph_builder | Interaction records exist, but none connect two assets that BOTH have a node in that window (peers are all non-monitored hosts) — interaction edge set is empty.
+23:50:32 | INFO    | src.graph.graph_builder | Graph built: 142,095 nodes | 0 interaction-edge endpoints | 248,816 temporal-edge endpoints
+23:50:32 | WARNING | src.pipeline | [edgeiiotset] Discarded 248,816 row-order-derived pseudo-temporal edge endpoints (no trustworthy timestamp for this dataset) -- interaction-only graph.
+23:50:32 | INFO    | src.pipeline | [edgeiiotset] Record-level fallback interaction graph: 35,370 representative-node edge endpoints (asset-pair communication, window/time-independent).
+23:50:32 | INFO    | src.pipeline | [edgeiiotset] Prepared 142,095 window instances (68,301 train / 10,804 val / 62,990 test), 175 features.
+23:50:32 | INFO    | run_reviewer_experiments | [meta-learner ablation] type = logistic_regression
+23:50:32 | INFO    | src.training.stage_detector_trainer | Fitting final Random Forest on full train split...
+23:50:45 | INFO    | src.training.stage_detector_trainer | Fitting final GCN on full train split (transductive forward pass over full graph)...
+23:51:03 | INFO    | src.training.stage_detector_trainer | Generating out-of-fold stacking features with 3-fold asset-disjoint CV...
+23:51:13 | INFO    | src.training.stage_detector_trainer |   fold 1/3: 47686 held-out train instances scored
+23:51:39 | INFO    | src.training.stage_detector_trainer |   fold 2/3: 10308 held-out train instances scored
+23:52:05 | INFO    | src.training.stage_detector_trainer |   fold 3/3: 10307 held-out train instances scored
+23:52:05 | INFO    | src.training.stage_detector_trainer | Fitting stacking meta-learner (type=logistic_regression)...
+23:52:11 | INFO    | run_reviewer_experiments | [meta-learner ablation] type = mlp
+23:52:11 | INFO    | src.training.stage_detector_trainer | Fitting final Random Forest on full train split...
+23:52:28 | INFO    | src.training.stage_detector_trainer | Fitting final GCN on full train split (transductive forward pass over full graph)...
+23:52:40 | INFO    | src.training.stage_detector_trainer | Generating out-of-fold stacking features with 3-fold asset-disjoint CV...
+23:52:48 | INFO    | src.training.stage_detector_trainer |   fold 1/3: 47686 held-out train instances scored
+23:53:06 | INFO    | src.training.stage_detector_trainer |   fold 2/3: 10308 held-out train instances scored
+23:53:24 | INFO    | src.training.stage_detector_trainer |   fold 3/3: 10307 held-out train instances scored
+23:53:24 | INFO    | src.training.stage_detector_trainer | Fitting stacking meta-learner (type=mlp)...
+23:54:20 | INFO    | run_reviewer_experiments | [meta-learner ablation] type = gradient_boosting
+23:54:20 | INFO    | src.training.stage_detector_trainer | Fitting final Random Forest on full train split...
+23:54:33 | INFO    | src.training.stage_detector_trainer | Fitting final GCN on full train split (transductive forward pass over full graph)...
+23:54:42 | INFO    | src.training.stage_detector_trainer | Generating out-of-fold stacking features with 3-fold asset-disjoint CV...
+23:54:49 | INFO    | src.training.stage_detector_trainer |   fold 1/3: 47686 held-out train instances scored
+23:55:10 | INFO    | src.training.stage_detector_trainer |   fold 2/3: 10308 held-out train instances scored
+23:55:32 | INFO    | src.training.stage_detector_trainer |   fold 3/3: 10307 held-out train instances scored
+23:55:32 | INFO    | src.training.stage_detector_trainer | Fitting stacking meta-learner (type=gradient_boosting)...
+23:57:42 | INFO    | src.pipeline | [edgeiiotset] Preparing dataset (Delta t = 60s, mapping='primary')...
+23:57:42 | INFO    | src.data.base_adapter | Reading /mnt/c/Users/kumar2_m/iiot-gnn-ids/data/raw/edgeiiotset/ML-EdgeIIoT-dataset.csv ...
+23:57:44 | INFO    | src.data.base_adapter | Loaded 157,800 rows, 63 raw columns from 1 file(s).
+23:57:44 | INFO    | src.data.generic_adapter | [edgeiiotset] Matched identity/label columns: {'timestamp': 'frame.time', 'src_id': 'ip.src_host', 'dst_id': 'ip.dst_host', 'binary_label': 'Attack_label', 'attack_type': 'Attack_type'}
+/mnt/c/Users/kumar2_m/iiot-gnn-ids/src/data/edgeiiotset_adapter.py:64: UserWarning: This pattern is interpreted as a regular expression, and has match groups. To actually get the groups, use str.extract.
+  has_real_date = raw_str.str.contains(_MONTH_RE) | raw_str.str.contains(_DATE_NUMERIC_RE)
+/mnt/c/Users/kumar2_m/iiot-gnn-ids/src/data/edgeiiotset_adapter.py:68: UserWarning: Could not infer format, so each element will be parsed individually, falling back to `dateutil`. To ensure parsing is consistent and as-expected, please specify a format.
+  return pd.to_datetime(raw_str, errors="coerce")
+23:58:05 | WARNING | src.data.generic_adapter | [edgeiiotset] Dropped 15,705 / 157,800 rows with unparseable timestamp or missing asset id.
+23:58:05 | WARNING | src.data.generic_adapter | [edgeiiotset] Impact forecasting will be SKIPPED for edgeiiotset: only 0.0% of rows have a genuine calendar date (month/day) in `frame.time` (< required 95.0%) -- the published ML-EdgeIIoT-dataset.csv is missing month/day for essentially every row (naive pandas parsing silently defaults it to Jan-1, which is NOT a real timestamp); real chronological Delta-t windowing, temporal graph edges, and pre-impact sequence construction are not valid on this field.
+23:58:05 | WARNING | src.data.generic_adapter | [edgeiiotset] Falling back to RECORD-LEVEL (non-windowed) instances for edgeiiotset stage detection + graph construction: one node per raw record (asset-level aggregation was rejected -- it collapses ~99.9% of assets to the worst-ever IMP class on this dataset), interaction edges built from real observed src/dst pairs (window/time-independent, via one representative node per asset), temporal edges discarded (no trustworthy chronological order). See timestamp_calendar_date_frac.
+23:58:05 | INFO    | src.data.generic_adapter | [edgeiiotset] Data quality: {'n_rows_raw': 157800, 'n_rows_kept': 142095, 'n_distinct_assets': 17687, 'timestamp_parseable_frac': 0.9004752851711026, 'has_peer_id': True, 'attack_type_source': 'column', 'timestamp_parseable_frac_naive': 0.9004752851711026, 'timestamp_calendar_date_frac': 0.0, 'timestamp_reliable_for_windowing': False, 'impact_forecasting_valid': False, 'impact_forecasting_invalid_reasons': ['only 0.0% of rows have a genuine calendar date (month/day) in `frame.time` (< required 95.0%) -- the published ML-EdgeIIoT-dataset.csv is missing month/day for essentially every row (naive pandas parsing silently defaults it to Jan-1, which is NOT a real timestamp); real chronological Delta-t windowing, temporal graph edges, and pre-impact sequence construction are not valid on this field.'], 'window_sensitivity_valid': False, 'window_sensitivity_invalid_reason': 'frame.time lacks a real calendar date for 100.0% of rows; sweeping Delta-t is meaningless without trustworthy absolute time.'}
+23:58:05 | WARNING | src.pipeline | [edgeiiotset] timestamp_reliable_for_windowing=False -- using RECORD-LEVEL (non-windowed) instances instead of Delta-t=60s windowing.
+/mnt/c/Users/kumar2_m/iiot-gnn-ids/src/preprocessing/windowing.py:128: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  windows_df = pd.concat([n_records, stats, *mode_frames, stage_series], axis=1).reset_index()
+/mnt/c/Users/kumar2_m/iiot-gnn-ids/src/preprocessing/windowing.py:128: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  windows_df = pd.concat([n_records, stats, *mode_frames, stage_series], axis=1).reset_index()
+23:58:08 | WARNING | src.graph.graph_builder | Interaction records exist, but none connect two assets that BOTH have a node in that window (peers are all non-monitored hosts) — interaction edge set is empty.
+23:58:13 | INFO    | src.graph.graph_builder | Graph built: 142,095 nodes | 0 interaction-edge endpoints | 248,816 temporal-edge endpoints
+23:58:13 | WARNING | src.pipeline | [edgeiiotset] Discarded 248,816 row-order-derived pseudo-temporal edge endpoints (no trustworthy timestamp for this dataset) -- interaction-only graph.
+23:58:13 | INFO    | src.pipeline | [edgeiiotset] Record-level fallback interaction graph: 35,370 representative-node edge endpoints (asset-pair communication, window/time-independent).
+23:58:13 | INFO    | src.pipeline | [edgeiiotset] Prepared 142,095 window instances (68,301 train / 10,804 val / 62,990 test), 175 features.
+00:03:44 | INFO    | src.pipeline | [edgeiiotset] Preparing dataset (Delta t = 60s, mapping='primary')...
+00:03:44 | INFO    | src.data.base_adapter | Reading /mnt/c/Users/kumar2_m/iiot-gnn-ids/data/raw/edgeiiotset/ML-EdgeIIoT-dataset.csv ...
+00:03:47 | INFO    | src.data.base_adapter | Loaded 157,800 rows, 63 raw columns from 1 file(s).
+00:03:47 | INFO    | src.data.generic_adapter | [edgeiiotset] Matched identity/label columns: {'timestamp': 'frame.time', 'src_id': 'ip.src_host', 'dst_id': 'ip.dst_host', 'binary_label': 'Attack_label', 'attack_type': 'Attack_type'}
+/mnt/c/Users/kumar2_m/iiot-gnn-ids/src/data/edgeiiotset_adapter.py:64: UserWarning: This pattern is interpreted as a regular expression, and has match groups. To actually get the groups, use str.extract.
+  has_real_date = raw_str.str.contains(_MONTH_RE) | raw_str.str.contains(_DATE_NUMERIC_RE)
+/mnt/c/Users/kumar2_m/iiot-gnn-ids/src/data/edgeiiotset_adapter.py:68: UserWarning: Could not infer format, so each element will be parsed individually, falling back to `dateutil`. To ensure parsing is consistent and as-expected, please specify a format.
+  return pd.to_datetime(raw_str, errors="coerce")
+00:04:17 | WARNING | src.data.generic_adapter | [edgeiiotset] Dropped 15,705 / 157,800 rows with unparseable timestamp or missing asset id.
+00:04:17 | WARNING | src.data.generic_adapter | [edgeiiotset] Impact forecasting will be SKIPPED for edgeiiotset: only 0.0% of rows have a genuine calendar date (month/day) in `frame.time` (< required 95.0%) -- the published ML-EdgeIIoT-dataset.csv is missing month/day for essentially every row (naive pandas parsing silently defaults it to Jan-1, which is NOT a real timestamp); real chronological Delta-t windowing, temporal graph edges, and pre-impact sequence construction are not valid on this field.
+00:04:17 | WARNING | src.data.generic_adapter | [edgeiiotset] Falling back to RECORD-LEVEL (non-windowed) instances for edgeiiotset stage detection + graph construction: one node per raw record (asset-level aggregation was rejected -- it collapses ~99.9% of assets to the worst-ever IMP class on this dataset), interaction edges built from real observed src/dst pairs (window/time-independent, via one representative node per asset), temporal edges discarded (no trustworthy chronological order). See timestamp_calendar_date_frac.
+00:04:17 | INFO    | src.data.generic_adapter | [edgeiiotset] Data quality: {'n_rows_raw': 157800, 'n_rows_kept': 142095, 'n_distinct_assets': 17687, 'timestamp_parseable_frac': 0.9004752851711026, 'has_peer_id': True, 'attack_type_source': 'column', 'timestamp_parseable_frac_naive': 0.9004752851711026, 'timestamp_calendar_date_frac': 0.0, 'timestamp_reliable_for_windowing': False, 'impact_forecasting_valid': False, 'impact_forecasting_invalid_reasons': ['only 0.0% of rows have a genuine calendar date (month/day) in `frame.time` (< required 95.0%) -- the published ML-EdgeIIoT-dataset.csv is missing month/day for essentially every row (naive pandas parsing silently defaults it to Jan-1, which is NOT a real timestamp); real chronological Delta-t windowing, temporal graph edges, and pre-impact sequence construction are not valid on this field.'], 'window_sensitivity_valid': False, 'window_sensitivity_invalid_reason': 'frame.time lacks a real calendar date for 100.0% of rows; sweeping Delta-t is meaningless without trustworthy absolute time.'}
+00:04:18 | WARNING | src.pipeline | [edgeiiotset] timestamp_reliable_for_windowing=False -- using RECORD-LEVEL (non-windowed) instances instead of Delta-t=60s windowing.
+/mnt/c/Users/kumar2_m/iiot-gnn-ids/src/preprocessing/windowing.py:128: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  windows_df = pd.concat([n_records, stats, *mode_frames, stage_series], axis=1).reset_index()
+/mnt/c/Users/kumar2_m/iiot-gnn-ids/src/preprocessing/windowing.py:128: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  windows_df = pd.concat([n_records, stats, *mode_frames, stage_series], axis=1).reset_index()
+00:04:23 | WARNING | src.graph.graph_builder | Interaction records exist, but none connect two assets that BOTH have a node in that window (peers are all non-monitored hosts) — interaction edge set is empty.
+00:04:29 | INFO    | src.graph.graph_builder | Graph built: 142,095 nodes | 0 interaction-edge endpoints | 248,816 temporal-edge endpoints
+00:04:29 | WARNING | src.pipeline | [edgeiiotset] Discarded 248,816 row-order-derived pseudo-temporal edge endpoints (no trustworthy timestamp for this dataset) -- interaction-only graph.
+00:04:29 | INFO    | src.pipeline | [edgeiiotset] Record-level fallback interaction graph: 35,370 representative-node edge endpoints (asset-pair communication, window/time-independent).
+00:04:29 | INFO    | src.pipeline | [edgeiiotset] Prepared 142,095 window instances (68,301 train / 10,804 val / 62,990 test), 175 features.
+00:04:29 | INFO    | src.training.stage_detector_trainer | Fitting final Random Forest on full train split...
+00:04:47 | INFO    | src.training.stage_detector_trainer | Fitting final GCN on full train split (transductive forward pass over full graph)...
+00:04:58 | INFO    | src.training.stage_detector_trainer | Generating out-of-fold stacking features with 3-fold asset-disjoint CV...
+00:05:06 | INFO    | src.training.stage_detector_trainer |   fold 1/3: 47686 held-out train instances scored
+00:05:23 | INFO    | src.training.stage_detector_trainer |   fold 2/3: 10308 held-out train instances scored
+00:05:41 | INFO    | src.training.stage_detector_trainer |   fold 3/3: 10307 held-out train instances scored
+00:05:41 | INFO    | src.training.stage_detector_trainer | Fitting stacking meta-learner (type=logistic_regression)...
+00:06:08 | INFO    | src.pipeline | [edgeiiotset] Preparing dataset (Delta t = 60s, mapping='primary')...
+00:06:08 | INFO    | src.data.base_adapter | Reading /mnt/c/Users/kumar2_m/iiot-gnn-ids/data/raw/edgeiiotset/ML-EdgeIIoT-dataset.csv ...
+00:06:11 | INFO    | src.data.base_adapter | Loaded 157,800 rows, 63 raw columns from 1 file(s).
+00:06:11 | INFO    | src.data.generic_adapter | [edgeiiotset] Matched identity/label columns: {'timestamp': 'frame.time', 'src_id': 'ip.src_host', 'dst_id': 'ip.dst_host', 'binary_label': 'Attack_label', 'attack_type': 'Attack_type'}
+/mnt/c/Users/kumar2_m/iiot-gnn-ids/src/data/edgeiiotset_adapter.py:64: UserWarning: This pattern is interpreted as a regular expression, and has match groups. To actually get the groups, use str.extract.
+  has_real_date = raw_str.str.contains(_MONTH_RE) | raw_str.str.contains(_DATE_NUMERIC_RE)
+/mnt/c/Users/kumar2_m/iiot-gnn-ids/src/data/edgeiiotset_adapter.py:68: UserWarning: Could not infer format, so each element will be parsed individually, falling back to `dateutil`. To ensure parsing is consistent and as-expected, please specify a format.
+  return pd.to_datetime(raw_str, errors="coerce")
+00:06:36 | WARNING | src.data.generic_adapter | [edgeiiotset] Dropped 15,705 / 157,800 rows with unparseable timestamp or missing asset id.
+00:06:36 | WARNING | src.data.generic_adapter | [edgeiiotset] Impact forecasting will be SKIPPED for edgeiiotset: only 0.0% of rows have a genuine calendar date (month/day) in `frame.time` (< required 95.0%) -- the published ML-EdgeIIoT-dataset.csv is missing month/day for essentially every row (naive pandas parsing silently defaults it to Jan-1, which is NOT a real timestamp); real chronological Delta-t windowing, temporal graph edges, and pre-impact sequence construction are not valid on this field.
+00:06:36 | WARNING | src.data.generic_adapter | [edgeiiotset] Falling back to RECORD-LEVEL (non-windowed) instances for edgeiiotset stage detection + graph construction: one node per raw record (asset-level aggregation was rejected -- it collapses ~99.9% of assets to the worst-ever IMP class on this dataset), interaction edges built from real observed src/dst pairs (window/time-independent, via one representative node per asset), temporal edges discarded (no trustworthy chronological order). See timestamp_calendar_date_frac.
+00:06:36 | INFO    | src.data.generic_adapter | [edgeiiotset] Data quality: {'n_rows_raw': 157800, 'n_rows_kept': 142095, 'n_distinct_assets': 17687, 'timestamp_parseable_frac': 0.9004752851711026, 'has_peer_id': True, 'attack_type_source': 'column', 'timestamp_parseable_frac_naive': 0.9004752851711026, 'timestamp_calendar_date_frac': 0.0, 'timestamp_reliable_for_windowing': False, 'impact_forecasting_valid': False, 'impact_forecasting_invalid_reasons': ['only 0.0% of rows have a genuine calendar date (month/day) in `frame.time` (< required 95.0%) -- the published ML-EdgeIIoT-dataset.csv is missing month/day for essentially every row (naive pandas parsing silently defaults it to Jan-1, which is NOT a real timestamp); real chronological Delta-t windowing, temporal graph edges, and pre-impact sequence construction are not valid on this field.'], 'window_sensitivity_valid': False, 'window_sensitivity_invalid_reason': 'frame.time lacks a real calendar date for 100.0% of rows; sweeping Delta-t is meaningless without trustworthy absolute time.'}
+00:06:36 | WARNING | src.pipeline | [edgeiiotset] timestamp_reliable_for_windowing=False -- using RECORD-LEVEL (non-windowed) instances instead of Delta-t=60s windowing.
+/mnt/c/Users/kumar2_m/iiot-gnn-ids/src/preprocessing/windowing.py:128: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  windows_df = pd.concat([n_records, stats, *mode_frames, stage_series], axis=1).reset_index()
+/mnt/c/Users/kumar2_m/iiot-gnn-ids/src/preprocessing/windowing.py:128: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  windows_df = pd.concat([n_records, stats, *mode_frames, stage_series], axis=1).reset_index()
+00:06:40 | WARNING | src.graph.graph_builder | Interaction records exist, but none connect two assets that BOTH have a node in that window (peers are all non-monitored hosts) — interaction edge set is empty.
+00:06:46 | INFO    | src.graph.graph_builder | Graph built: 142,095 nodes | 0 interaction-edge endpoints | 248,816 temporal-edge endpoints
+00:06:46 | WARNING | src.pipeline | [edgeiiotset] Discarded 248,816 row-order-derived pseudo-temporal edge endpoints (no trustworthy timestamp for this dataset) -- interaction-only graph.
+00:06:47 | INFO    | src.pipeline | [edgeiiotset] Record-level fallback interaction graph: 35,370 representative-node edge endpoints (asset-pair communication, window/time-independent).
+00:06:47 | INFO    | src.pipeline | [edgeiiotset] Prepared 142,095 window instances (68,301 train / 10,804 val / 62,990 test), 175 features.
+00:06:47 | INFO    | src.training.stage_detector_trainer | Fitting final Random Forest on full train split...
+00:07:04 | INFO    | src.training.stage_detector_trainer | Fitting final GCN on full train split (transductive forward pass over full graph)...
+00:07:13 | INFO    | src.training.stage_detector_trainer | Generating out-of-fold stacking features with 3-fold asset-disjoint CV...
+00:07:19 | INFO    | src.training.stage_detector_trainer |   fold 1/3: 47686 held-out train instances scored
+00:07:35 | INFO    | src.training.stage_detector_trainer |   fold 2/3: 10308 held-out train instances scored
+00:07:52 | INFO    | src.training.stage_detector_trainer |   fold 3/3: 10307 held-out train instances scored
+00:07:52 | INFO    | src.training.stage_detector_trainer | Fitting stacking meta-learner (type=logistic_regression)...
+00:08:04 | INFO    | run_reviewer_experiments | [edgeiiotset] Reviewer experiments done. Written to /mnt/c/Users/kumar2_m/iiot-gnn-ids/results/edgeiiotset/reviewer_experiments, /mnt/c/Users/kumar2_m/iiot-gnn-ids/results/manuscript_tables

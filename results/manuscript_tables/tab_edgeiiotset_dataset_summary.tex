@@ -1,0 +1,34 @@
+\begin{table}[t]
+\centering
+\caption{edgeiiotset: dataset summary.}
+\label{tab:edgeiiotset_dataset_summary}
+\begin{tabular}{lll}
+\toprule
+Metric & Value & Note \\
+\midrule
+raw\_records\_modality & network\_flow (single CSV source) &  \\
+raw\_records\_count & 157,800 &  \\
+raw\_records\_kept\_after\_adapter\_cleaning & 142,095 &  \\
+unit\_of\_analysis & record-level (no trustworthy timestamp for windowing) &  \\
+final\_unified\_instances & 142,095 &  \\
+feature\_dimension & 175 &  \\
+delta\_t\_seconds & -- & N/A -- record-level fallback, see data\_quality\_report \\
+n\_distinct\_assets & 17,687 &  \\
+stage\_count\_Benign & 24,301 &  \\
+stage\_count\_IAD & 41,189 &  \\
+stage\_count\_LMEP & 30,775 &  \\
+stage\_count\_IMP & 45,830 &  \\
+split\_count\_train & 68,301 &  \\
+split\_count\_val & 10,804 &  \\
+split\_count\_test & 62,990 &  \\
+graph\_nodes & 142,095 &  \\
+graph\_interaction\_edges & 17,685 & undirected edges (endpoints / 2) \\
+graph\_temporal\_edges & 0 & undirected edges (endpoints / 2) \\
+graph\_average\_degree & 0.249 & (interaction+temporal edge endpoints) / nodes \\
+impact\_positive\_asset\_count & 17,676 &  \\
+impact\_negative\_asset\_count & 11 &  \\
+impact\_forecast\_instances\_total & -- & N/A -- only 0.0% of rows have a genuine calendar date (month/day) in `frame.time` (< required 95.0%) -- the published ML-EdgeIIoT-dataset.csv is missing month/day for essentially every row (naive pandas parsing silently defaults it to Jan-1, which is NOT a real timestamp); real chronological Delta-t windowing, temporal graph edges, and pre-impact sequence construction are not valid on this field. \\
+impact\_forecasting\_valid\_overall & 0 & only 0.0% of rows have a genuine calendar date (month/day) in `frame.time` (< required 95.0%) -- the published ML-EdgeIIoT-dataset.csv is missing month/day for essentially every row (naive pandas parsing silently defaults it to Jan-1, which is NOT a real timestamp); real chronological Delta-t windowing, temporal graph edges, and pre-impact sequence construction are not valid on this field. \\
+\bottomrule
+\end{tabular}
+\end{table}

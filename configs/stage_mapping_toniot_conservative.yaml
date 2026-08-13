@@ -1,0 +1,27 @@
+# =============================================================================
+# Stage-mapping SENSITIVITY VARIANT — ToN-IoT — "conservative-impact"
+# =============================================================================
+# Reviewer-response ablation (see run_reviewer_experiments.py's
+# stage_mapping_sensitivity experiment). Shrinks the IMP class to only the
+# least-ambiguous, unambiguously-destructive/availability-impact families,
+# relative to the primary mapping (configs/stage_mapping_toniot.yaml).
+# Rationale: a single-host `dos` is arguably still an escalation/persistence
+# action rather than a network-wide availability impact, so it moves to
+# LMEP here. `ddos` and `ransomware` remain IMP (unambiguous impact).
+# =============================================================================
+
+benign_values:
+  - normal
+
+mapping:
+  scanning: IAD
+  password: IAD
+  xss: IAD
+  backdoor: LMEP
+  injection: LMEP
+  mitm: LMEP
+  dos: LMEP        # <- moved from IMP (primary mapping) to LMEP
+  ddos: IMP
+  ransomware: IMP
+
+default_unmapped: IAD

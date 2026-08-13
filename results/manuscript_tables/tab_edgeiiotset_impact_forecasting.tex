@@ -1,0 +1,12 @@
+\begin{table}[t]
+\centering
+\caption{edgeiiotset: impact forecasting -- SKIPPED.}
+\label{tab:edgeiiotset_impact_forecasting}
+\begin{tabular}{p{0.9\linewidth}}
+\toprule
+\textbf{SKIPPED for edgeiiotset} \\
+\midrule
+only 0.0\% of rows have a genuine calendar date (month/day) in `frame.time` (< required 95.0\%) -- the published ML-EdgeIIoT-dataset.csv is missing month/day for essentially every row (naive pandas parsing silently defaults it to Jan-1, which is NOT a real timestamp); real chronological Delta-t windowing, temporal graph edges, and pre-impact sequence construction are not valid on this field. \\
+\bottomrule
+\end{tabular}
+\end{table}

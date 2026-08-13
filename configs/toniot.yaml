@@ -1,0 +1,214 @@
+# =============================================================================
+# Dataset configuration: ToN-IoT (Network flow subset)
+# =============================================================================
+# This config describes the *public* schema of the UNSW ToN-IoT "Network"
+# dataset (file commonly distributed as `Train_Test_Network.csv`, ~461,043
+# rows, 44 columns: 42 features + `label` (binary) + `type` (attack family)).
+#
+# IMPORTANT: The adapter (src/data/toniot_adapter.py) does NOT blindly trust
+# this file. At load time it reads the *actual* CSV header and matches it
+# against the `candidates` listed below (case-insensitive, punctuation
+# tolerant). If a required field cannot be matched, the adapter raises a
+# clear error rather than silently guessing or fabricating a column. This
+# config only encodes our best-effort expectation of the schema so the
+# adapter has good candidates to search for; it is not itself a source of
+# truth about the data.
+# =============================================================================
+
+dataset:
+  name: toniot
+  raw_dir: data/raw/toniot
+  # Adapter will glob for CSV files here if the exact name isn't found.
+  preferred_filename: "Train_Test_Network.csv"
+  file_glob: "*.csv"
+  # Download source (paper / UNSW Canberra Cyber Range):
+  # https://research.unsw.edu.au/projects/toniot-datasets
+  source_note: >
+    Place the raw ToN-IoT Network CSV(s) in data/raw/toniot/. Not bundled
+    with this repo (license + size). See README for the exact file expected.
+
+schema:
+  # --- identity / time -------------------------------------------------
+  timestamp:
+    candidates: [ts, timestamp, time]
+    format: epoch_seconds        # ToN-IoT `ts` is a unix epoch float
+  src_id:
+    candidates: [src_ip, id.orig_h, source_ip]
+  dst_id:
+    candidates: [dst_ip, id.resp_h, destination_ip]
+  src_port:
+    candidates: [src_port, id.orig_p]
+  dst_port:
+    candidates: [dst_port, id.resp_p]
+
+  # --- labels ------------------------------------------------------------
+  binary_label:
+    candidates: [label]           # 0 = normal, 1 = attack
+  attack_type:
+    candidates: [type]            # normal, scanning, dos, ddos, password,
+                                   # backdoor, injection, xss, ransomware, mitm
+
+  # --- features used for tabular / window aggregation --------------------
+  numeric_features:
+    - duration
+    - src_bytes
+    - dst_bytes
+    - missed_bytes
+    - src_pkts
+    - src_ip_bytes
+    - dst_pkts
+    - dst_ip_bytes
+    - http_request_body_len
+    - http_response_body_len
+    - http_status_code
+    - dns_qclass
+    - dns_qtype
+    - dns_rcode
+
+  categorical_features:
+    - proto
+    - service
+    - conn_state
+    - dns_AA
+    - dns_RD
+    - dns_RA
+    - dns_rejected
+    - ssl_version
+    - ssl_resumed
+    - ssl_established
+    - http_method
+    - http_version
+    - weird_name
+    - weird_notice
+
+  # High-cardinality / free-text columns intentionally excluded from
+  # features (kept only if present, never fabricated): ssl_subject,
+  # ssl_issuer, http_uri, http_referrer, http_user_agent,
+  # http_orig_mime_types, http_resp_mime_types, dns_query, weird_addl.
+  drop_cols:
+    - ssl_subject
+    - ssl_issuer
+    - http_uri
+    - http_referrer
+    - http_user_agent
+    - http_orig_mime_types
+    - http_resp_mime_types
+    - dns_query
+    - weird_addl
+
+# The "asset" whose behavior we track over time. ToN-IoT flows are
+# unidirectional-ish conn logs; we treat the flow *originator* (src_ip) as
+# the monitored asset, and dst_ip as the peer it communicates with in that
+# window (used to build interaction edges).
+asset_definition:
+  asset_id_field: src_id
+  peer_id_field: dst_id
+
+window:
+  delta_t_seconds: 60
+  candidate_delta_t_seconds: [30, 60, 120, 300]
+  # Rule for assigning a stage label to a whole (asset, window) instance
+  # from the (possibly several) raw records that fall in it.
+  # "max_severity": Benign < IAD < LMEP < IMP, take the worst present.
+  label_rule: max_severity
+
+forecasting:
+  # Horizon expressed as a multiple of the window size (Delta t), so it is
+  # automatically consistent under window-sensitivity experiments.
+  horizon_multiple: 30
+  candidate_horizon_multiples: [10, 30, 60]
+  # A pre-impact window too close to the end of an asset's observed
+  # timeline (i.e. we cannot see `horizon_multiple` windows ahead) cannot be
+  # confidently labeled negative and is dropped rather than guessed.
+  drop_unconfirmed_negatives: true
+
+split:
+  # Asset-disjoint split: an asset (src_ip) appears in exactly one of
+  # train/val/test. Never a random record-level split.
+  asset_field: asset_id
+  train_frac: 0.6
+  val_frac: 0.2
+  test_frac: 0.2
+  seed: 42
+
+graph:
+  # Which edge types to build. Overridden per-experiment by the graph
+  # ablation study (interaction-only / temporal-only / both).
+  use_interaction_edges: true
+  use_temporal_edges: true
+  # Cap on interaction edges per window to bound graph size on large data.
+  max_interaction_edges_per_window: 200000
+
+models:
+  random_forest:
+    n_estimators: 300
+    max_depth: null
+    min_samples_leaf: 2
+    class_weight: balanced
+    random_state: 42
+    n_jobs: -1
+  gcn:
+    hidden_dim: 64
+    num_layers: 2
+    dropout: 0.3
+    lr: 0.005
+    weight_decay: 0.0005
+    epochs: 100
+    patience: 15
+  meta_learner:
+    type: logistic_regression   # logistic_regression | mlp | gradient_boosting
+    logistic_regression:
+      C: 1.0
+      max_iter: 2000
+      class_weight: balanced
+    mlp:
+      hidden_layer_sizes: [32]
+      max_iter: 500
+      alpha: 0.001
+    gradient_boosting:
+      n_estimators: 200
+      max_depth: 3
+      learning_rate: 0.05
+  gru_forecaster:
+    hidden_dim: 32
+    num_layers: 1
+    dropout: 0.2
+    lr: 0.001
+    weight_decay: 0.0001
+    epochs: 60
+    patience: 10
+    batch_size: 64
+    max_seq_len: 60          # truncate/pad pre-impact sequence length
+  xgboost:
+    n_estimators: 300
+    max_depth: 6
+    learning_rate: 0.1
+    subsample: 0.8
+    colsample_bytree: 0.8
+    random_state: 42
+    n_jobs: -1
+  lightgbm:
+    n_estimators: 300
+    max_depth: -1
+    learning_rate: 0.1
+    subsample: 0.8
+    colsample_bytree: 0.8
+    random_state: 42
+    n_jobs: -1
+  temporal_baseline:        # no-graph GRU/LSTM stage-detection baseline
+    cell: gru                # gru | lstm
+    hidden_dim: 32
+    num_layers: 1
+    dropout: 0.2
+    lr: 0.001
+    weight_decay: 0.0001
+    epochs: 60
+    patience: 10
+    batch_size: 64
+    max_seq_len: 60
+
+evaluation:
+  bootstrap_iterations: 1000
+  bootstrap_ci: 0.95
+  capture_at_percents: [1, 2, 5, 10]
+  random_state: 42

@@ -1,0 +1,14 @@
+\begin{table}[t]
+\centering
+\caption{edgeiiotset: meta-learner ablation.}
+\label{tab:edgeiiotset_meta_learner_ablation}
+\begin{tabular}{llllllll}
+\toprule
+meta\_learner & macro\_f1 & f1\_benign & f1\_iad & f1\_lmep & f1\_imp & mean\_brier\_score & training\_time\_s \\
+\midrule
+logistic\_regression & 0.115 & 0.000 & 0.085 & 0.000 & 0.377 & 0.422 & 98.974 \\
+mlp & 0.187 & 0.000 & 0.297 & 0.000 & 0.453 & 0.395 & 129.096 \\
+gradient\_boosting & 0.308 & 0.357 & 0.467 & 0.013 & 0.393 & 0.253 & 201.367 \\
+\bottomrule
+\end{tabular}
+\end{table}

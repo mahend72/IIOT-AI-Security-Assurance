@@ -1,0 +1,48 @@
+00:29:57 | INFO    | run_final_validation | === Validating toniot ===
+00:29:57 | INFO    | src.pipeline | [toniot] Preparing dataset (Delta t = 60s, mapping='primary')...
+00:29:57 | INFO    | src.data.base_adapter | Reading /mnt/c/Users/kumar2_m/iiot-gnn-ids/data/raw/toniot/Train_Test_Network.csv ...
+00:30:02 | INFO    | src.data.base_adapter | Loaded 461,043 rows, 45 raw columns from 1 file(s).
+00:30:02 | INFO    | src.data.generic_adapter | [toniot] Matched identity/label columns: {'timestamp': 'ts', 'src_id': 'src_ip', 'dst_id': 'dst_ip', 'binary_label': 'label', 'attack_type': 'type'}
+00:30:02 | INFO    | src.data.generic_adapter | [toniot] Data quality: {'n_rows_raw': 461043, 'n_rows_kept': 461043, 'n_distinct_assets': 11536, 'timestamp_parseable_frac': 1.0, 'has_peer_id': True, 'attack_type_source': 'column'}
+00:30:07 | INFO    | src.graph.graph_builder | Graph built: 11,536 nodes | 23,110 interaction-edge endpoints | 0 temporal-edge endpoints
+00:30:07 | INFO    | src.pipeline | [toniot] Prepared 11,536 window instances (6,922 train / 2,307 val / 2,307 test), 104 features.
+00:30:10 | INFO    | run_final_validation | === Validating edgeiiotset ===
+00:30:10 | INFO    | src.pipeline | [edgeiiotset] Preparing dataset (Delta t = 60s, mapping='primary')...
+00:30:10 | INFO    | src.data.base_adapter | Reading /mnt/c/Users/kumar2_m/iiot-gnn-ids/data/raw/edgeiiotset/ML-EdgeIIoT-dataset.csv ...
+00:30:13 | INFO    | src.data.base_adapter | Loaded 157,800 rows, 63 raw columns from 1 file(s).
+00:30:13 | INFO    | src.data.generic_adapter | [edgeiiotset] Matched identity/label columns: {'timestamp': 'frame.time', 'src_id': 'ip.src_host', 'dst_id': 'ip.dst_host', 'binary_label': 'Attack_label', 'attack_type': 'Attack_type'}
+/mnt/c/Users/kumar2_m/iiot-gnn-ids/src/data/edgeiiotset_adapter.py:64: UserWarning: This pattern is interpreted as a regular expression, and has match groups. To actually get the groups, use str.extract.
+  has_real_date = raw_str.str.contains(_MONTH_RE) | raw_str.str.contains(_DATE_NUMERIC_RE)
+/mnt/c/Users/kumar2_m/iiot-gnn-ids/src/data/edgeiiotset_adapter.py:68: UserWarning: Could not infer format, so each element will be parsed individually, falling back to `dateutil`. To ensure parsing is consistent and as-expected, please specify a format.
+  return pd.to_datetime(raw_str, errors="coerce")
+00:30:32 | WARNING | src.data.generic_adapter | [edgeiiotset] Dropped 15,705 / 157,800 rows with unparseable timestamp or missing asset id.
+00:30:32 | WARNING | src.data.generic_adapter | [edgeiiotset] Impact forecasting will be SKIPPED for edgeiiotset: only 0.0% of rows have a genuine calendar date (month/day) in `frame.time` (< required 95.0%) -- the published ML-EdgeIIoT-dataset.csv is missing month/day for essentially every row (naive pandas parsing silently defaults it to Jan-1, which is NOT a real timestamp); real chronological Delta-t windowing, temporal graph edges, and pre-impact sequence construction are not valid on this field.
+00:30:32 | WARNING | src.data.generic_adapter | [edgeiiotset] Falling back to RECORD-LEVEL (non-windowed) instances for edgeiiotset stage detection + graph construction: one node per raw record (asset-level aggregation was rejected -- it collapses ~99.9% of assets to the worst-ever IMP class on this dataset), interaction edges built from real observed src/dst pairs (window/time-independent, via one representative node per asset), temporal edges discarded (no trustworthy chronological order). See timestamp_calendar_date_frac.
+00:30:32 | INFO    | src.data.generic_adapter | [edgeiiotset] Data quality: {'n_rows_raw': 157800, 'n_rows_kept': 142095, 'n_distinct_assets': 17687, 'timestamp_parseable_frac': 0.9004752851711026, 'has_peer_id': True, 'attack_type_source': 'column', 'timestamp_parseable_frac_naive': 0.9004752851711026, 'timestamp_calendar_date_frac': 0.0, 'timestamp_reliable_for_windowing': False, 'impact_forecasting_valid': False, 'impact_forecasting_invalid_reasons': ['only 0.0% of rows have a genuine calendar date (month/day) in `frame.time` (< required 95.0%) -- the published ML-EdgeIIoT-dataset.csv is missing month/day for essentially every row (naive pandas parsing silently defaults it to Jan-1, which is NOT a real timestamp); real chronological Delta-t windowing, temporal graph edges, and pre-impact sequence construction are not valid on this field.'], 'window_sensitivity_valid': False, 'window_sensitivity_invalid_reason': 'frame.time lacks a real calendar date for 100.0% of rows; sweeping Delta-t is meaningless without trustworthy absolute time.'}
+00:30:32 | WARNING | src.pipeline | [edgeiiotset] timestamp_reliable_for_windowing=False -- using RECORD-LEVEL (non-windowed) instances instead of Delta-t=60s windowing.
+/mnt/c/Users/kumar2_m/iiot-gnn-ids/src/preprocessing/windowing.py:128: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  windows_df = pd.concat([n_records, stats, *mode_frames, stage_series], axis=1).reset_index()
+/mnt/c/Users/kumar2_m/iiot-gnn-ids/src/preprocessing/windowing.py:128: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  windows_df = pd.concat([n_records, stats, *mode_frames, stage_series], axis=1).reset_index()
+00:30:38 | WARNING | src.graph.graph_builder | Interaction records exist, but none connect two assets that BOTH have a node in that window (peers are all non-monitored hosts) — interaction edge set is empty.
+00:30:47 | INFO    | src.graph.graph_builder | Graph built: 142,095 nodes | 0 interaction-edge endpoints | 248,816 temporal-edge endpoints
+00:30:47 | WARNING | src.pipeline | [edgeiiotset] Discarded 248,816 row-order-derived pseudo-temporal edge endpoints (no trustworthy timestamp for this dataset) -- interaction-only graph.
+00:30:48 | INFO    | src.pipeline | [edgeiiotset] Record-level fallback interaction graph: 35,370 representative-node edge endpoints (asset-pair communication, window/time-independent).
+00:30:48 | INFO    | src.pipeline | [edgeiiotset] Prepared 142,095 window instances (68,301 train / 10,804 val / 62,990 test), 175 features.
+00:30:52 | INFO    | run_final_validation | [toniot] PASS -- no_asset_in_multiple_splits: all assets confined to exactly one split
+00:30:52 | INFO    | run_final_validation | [toniot] PASS -- scaler_fit_train_only: scaler means match a TRAIN-only independent refit
+00:30:52 | INFO    | run_final_validation | [toniot] PASS -- no_test_leakage_in_threshold_selection: threshold selector's only call site and body reference val, never test
+00:30:52 | INFO    | run_final_validation | [toniot] PASS -- oof_subgraph_train_only: induced subgraph has 6922 nodes, all train=True
+00:30:52 | INFO    | run_final_validation | [toniot] PASS -- forecaster_pre_cutoff_only: N/A -- zero forecasting instances constructed
+00:30:52 | INFO    | run_final_validation | [toniot] PASS -- no_imp_evidence_in_forecaster_features: feature dim=105 (expected 105, IMP column never concatenated); gate probabilities not saturated by IMP mass: True
+00:30:52 | INFO    | run_final_validation | [toniot] PASS -- no_synthetic_data: no .SYNTHETIC_DATA_MARKER present
+00:30:52 | INFO    | run_final_validation | [toniot] PASS -- provenance_stamps_present: all files stamped
+00:30:52 | INFO    | run_final_validation | [edgeiiotset] PASS -- no_asset_in_multiple_splits: all assets confined to exactly one split
+00:30:52 | INFO    | run_final_validation | [edgeiiotset] PASS -- scaler_fit_train_only: scaler means match a TRAIN-only independent refit
+00:30:52 | INFO    | run_final_validation | [edgeiiotset] PASS -- no_test_leakage_in_threshold_selection: threshold selector's only call site and body reference val, never test
+00:30:52 | INFO    | run_final_validation | [edgeiiotset] PASS -- oof_subgraph_train_only: induced subgraph has 68301 nodes, all train=True
+00:30:52 | INFO    | run_final_validation | [edgeiiotset] PASS -- forecaster_pre_cutoff_only: N/A -- impact forecasting not valid for this dataset
+00:30:52 | INFO    | run_final_validation | [edgeiiotset] PASS -- no_imp_evidence_in_forecaster_features: N/A -- impact forecasting not valid for this dataset
+00:30:52 | INFO    | run_final_validation | [edgeiiotset] PASS -- no_synthetic_data: no .SYNTHETIC_DATA_MARKER present
+00:30:52 | INFO    | run_final_validation | [edgeiiotset] PASS -- provenance_stamps_present: all files stamped
+00:30:52 | INFO    | run_final_validation | Summary: 16/16 checks passed. Report: /mnt/c/Users/kumar2_m/iiot-gnn-ids/results/VALIDATION_REPORT.json

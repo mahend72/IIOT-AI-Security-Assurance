@@ -1,0 +1,30 @@
+# =============================================================================
+# Stage-mapping SENSITIVITY VARIANT — Edge-IIoTset — "conservative-impact"
+# =============================================================================
+# Shrinks IMP relative to the primary mapping (configs/stage_mapping_
+# edgeiiotset.yaml): DDoS_UDP and DDoS_ICMP (often network/amplification-
+# layer disruption, closer to a persistence/DoS-staging action here) move to
+# LMEP. Only Ransomware, DDoS_HTTP, and DDoS_TCP — the least ambiguous
+# host/application-impact families — remain IMP.
+# =============================================================================
+
+benign_values:
+  - Normal
+
+mapping:
+  Fingerprinting: IAD
+  Port_Scanning: IAD
+  Vulnerability_scanner: IAD
+  Password: IAD
+  XSS: IAD
+  Backdoor: LMEP
+  SQL_injection: LMEP
+  Uploading: LMEP
+  MITM: LMEP
+  DDoS_UDP: LMEP     # <- moved from IMP (primary mapping) to LMEP
+  DDoS_ICMP: LMEP    # <- moved from IMP (primary mapping) to LMEP
+  DDoS_TCP: IMP
+  DDoS_HTTP: IMP
+  Ransomware: IMP
+
+default_unmapped: IAD

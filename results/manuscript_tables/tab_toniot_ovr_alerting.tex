@@ -1,0 +1,16 @@
+\begin{table}[t]
+\centering
+\caption{toniot: one-vs-rest stage alerting (Stacked RF-GCN, test).}
+\label{tab:toniot_ovr_alerting}
+\begin{tabular}{llllllll}
+\toprule
+Stage & Precision & Recall & F1 & PR-AUC & Threshold & N pos & N total \\
+\midrule
+IAD & 0.000 & 0.000 & 0.000 & 0.053 & 0.500 & 1 & 2,307 \\
+LMEP & 0.333 & 1.000 & 0.500 & 0.333 & 0.010 & 1 & 2,307 \\
+IMP & 0.000 & 0.000 & 0.000 & 0.340 & 0.950 & 3 & 2,307 \\
+\bottomrule
+\end{tabular}
+\vspace{2pt}
+\parbox{\linewidth}{\footnotesize threshold in [0.01, 0.99] (step 0.01) maximizing one-vs-rest F1 on the VALIDATION split; applied unchanged to TEST (test never used for threshold selection)}
+\end{table}

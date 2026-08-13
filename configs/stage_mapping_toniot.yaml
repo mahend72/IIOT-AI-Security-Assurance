@@ -1,0 +1,44 @@
+# =============================================================================
+# Attack-stage taxonomy mapping — ToN-IoT
+# =============================================================================
+# Maps ToN-IoT's raw `type` values to the paper's 4-class stage taxonomy:
+#   Benign — normal traffic
+#   IAD    — Initial Access & Discovery (recon, credential/entry attempts)
+#   LMEP   — Lateral Movement / Escalation / Persistence
+#   IMP    — Impact (availability/destructive/data-impact attacks)
+#
+# Rationale (kept explicit so it's auditable / editable, not hardcoded in
+# Python):
+#   scanning  -> IAD   : network/service reconnaissance, precedes access
+#   password  -> IAD   : credential brute force = initial-access attempt
+#   xss       -> IAD   : client-side injection used as an initial foothold
+#                         on IIoT web dashboards
+#   backdoor  -> LMEP  : persistence mechanism after initial compromise
+#   injection -> LMEP  : server-side exploitation used to escalate/pivot
+#   mitm      -> LMEP  : on-path positioning for lateral traffic manipulation
+#   dos       -> IMP   : availability impact
+#   ddos      -> IMP   : availability impact
+#   ransomware-> IMP   : direct destructive/data impact
+#
+# `type` values are matched case-insensitively, exact match after trimming.
+# Any raw value not listed here falls back to `default_unmapped`, and the
+# adapter logs a warning listing the unmapped values it encountered so
+# nothing is silently misclassified.
+# =============================================================================
+
+benign_values:
+  - normal
+
+mapping:
+  scanning: IAD
+  password: IAD
+  xss: IAD
+  backdoor: LMEP
+  injection: LMEP
+  mitm: LMEP
+  dos: IMP
+  ddos: IMP
+  ransomware: IMP
+
+default_unmapped: IAD   # conservative: treat unrecognized attack traffic as
+                         # early-stage rather than silently dropping it

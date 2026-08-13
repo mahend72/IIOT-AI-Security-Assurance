@@ -1,0 +1,25 @@
+# =============================================================================
+# Stage-mapping SENSITIVITY VARIANT — ToN-IoT — "expanded-impact"
+# =============================================================================
+# Reviewer-response ablation. Grows the IMP class relative to the primary
+# mapping (configs/stage_mapping_toniot.yaml): `mitm` moves from LMEP to
+# IMP here, on the reasoning that on-path manipulation can itself constitute
+# a data-impact event (traffic tampering / exfiltration), not merely a
+# lateral-movement enabler.
+# =============================================================================
+
+benign_values:
+  - normal
+
+mapping:
+  scanning: IAD
+  password: IAD
+  xss: IAD
+  backdoor: LMEP
+  injection: LMEP
+  mitm: IMP        # <- moved from LMEP (primary mapping) to IMP
+  dos: IMP
+  ddos: IMP
+  ransomware: IMP
+
+default_unmapped: IAD

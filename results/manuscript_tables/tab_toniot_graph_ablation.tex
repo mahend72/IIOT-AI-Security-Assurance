@@ -1,0 +1,16 @@
+\begin{table}[t]
+\centering
+\caption{toniot: graph ablation.}
+\label{tab:toniot_graph_ablation}
+\begin{tabular}{lllllllllll}
+\toprule
+graph\_mode & nodes & edges & average\_degree & macro\_f1 & f1\_benign & f1\_iad & f1\_lmep & f1\_imp & training\_time\_s & inference\_latency\_ms \\
+\midrule
+interaction\_only & 11,536 & 11,555 & 2.003 & 0.343 & 0.997 & 0.000 & 0.000 & 0.375 & 17.938 & 45.428 \\
+temporal\_only & 11,536 & 0 & 0.000 & 0.250 & 0.998 & 0.000 & 0.000 & 0.000 & 11.118 & 13.580 \\
+both & 11,536 & 11,555 & 2.003 & 0.343 & 0.997 & 0.000 & 0.000 & 0.375 & 14.903 & 19.686 \\
+\bottomrule
+\end{tabular}
+\vspace{2pt}
+\parbox{\linewidth}{\footnotesize Directed-communication and typed/relational edge variants are not implemented in this codebase (the GNN backbones used -- GCN/GraphSAGE/GAT -- are undirected, untyped message-passing layers); only interaction-only / temporal-only / both are reported.}
+\end{table}

@@ -1,0 +1,29 @@
+# =============================================================================
+# Stage-mapping SENSITIVITY VARIANT — Edge-IIoTset — "expanded-impact"
+# =============================================================================
+# Grows IMP relative to the primary mapping (configs/stage_mapping_
+# edgeiiotset.yaml): MITM moves from LMEP to IMP, on the same reasoning as
+# the ToN-IoT expanded variant — on-path manipulation can itself constitute
+# a data-impact event.
+# =============================================================================
+
+benign_values:
+  - Normal
+
+mapping:
+  Fingerprinting: IAD
+  Port_Scanning: IAD
+  Vulnerability_scanner: IAD
+  Password: IAD
+  XSS: IAD
+  Backdoor: LMEP
+  SQL_injection: LMEP
+  Uploading: LMEP
+  MITM: IMP          # <- moved from LMEP (primary mapping) to IMP
+  DDoS_UDP: IMP
+  DDoS_ICMP: IMP
+  DDoS_TCP: IMP
+  DDoS_HTTP: IMP
+  Ransomware: IMP
+
+default_unmapped: IAD

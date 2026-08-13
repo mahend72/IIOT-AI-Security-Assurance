@@ -1,0 +1,18 @@
+\begin{table}[t]
+\centering
+\caption{edgeiiotset: inference latency.}
+\label{tab:edgeiiotset_inference_latency}
+\begin{tabular}{ll}
+\toprule
+component & latency\_ms \\
+\midrule
+feature\_aggregation (per instance) & 12.006 \\
+RF scoring (per instance) & 126.774 \\
+GCN full-graph forward pass & 98.438 \\
+GCN node scoring (amortized per test node) & 0.002 \\
+Stacking meta-learner (per instance) & 0.202 \\
+End-to-end (per instance, all applicable stages) & 138.983 \\
+Throughput (instances/sec, end-to-end) & 7.195 \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -1,0 +1,48 @@
+# =============================================================================
+# Attack-stage taxonomy mapping — Edge-IIoTset
+# =============================================================================
+# Maps Edge-IIoTset's raw `Attack_type` values (14 attack classes + Normal)
+# to the paper's 4-class stage taxonomy: Benign, IAD, LMEP, IMP.
+#
+# Rationale:
+#   Fingerprinting        -> IAD  : device/service fingerprinting = recon
+#   Port_Scanning         -> IAD  : network reconnaissance
+#   Vulnerability_scanner -> IAD  : automated recon for exploitable entry
+#   Password              -> IAD  : credential brute force / initial access
+#   XSS                   -> IAD  : client-side injection, initial foothold
+#   Backdoor              -> LMEP : persistence after compromise
+#   SQL_injection          -> LMEP : server-side exploitation / escalation
+#   Uploading              -> LMEP : malicious file upload, used to pivot /
+#                                    persist on the target service
+#   MITM                   -> LMEP : on-path lateral positioning
+#   DDoS_UDP                -> IMP : availability impact
+#   DDoS_ICMP                -> IMP : availability impact
+#   DDoS_TCP                -> IMP : availability impact
+#   DDoS_HTTP                -> IMP : availability impact
+#   Ransomware               -> IMP : direct destructive/data impact
+#
+# Matching is case-insensitive and tolerant of separator differences
+# (`DDoS_UDP` vs `DDOS_UDP` vs `ddos udp`, etc.) — see
+# src/mapping/label_mapper.py `_normalize_key`.
+# =============================================================================
+
+benign_values:
+  - Normal
+
+mapping:
+  Fingerprinting: IAD
+  Port_Scanning: IAD
+  Vulnerability_scanner: IAD
+  Password: IAD
+  XSS: IAD
+  Backdoor: LMEP
+  SQL_injection: LMEP
+  Uploading: LMEP
+  MITM: LMEP
+  DDoS_UDP: IMP
+  DDoS_ICMP: IMP
+  DDoS_TCP: IMP
+  DDoS_HTTP: IMP
+  Ransomware: IMP
+
+default_unmapped: IAD

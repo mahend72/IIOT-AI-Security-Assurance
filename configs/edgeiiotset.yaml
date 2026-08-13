@@ -1,0 +1,229 @@
+# =============================================================================
+# Dataset configuration: Edge-IIoTset
+# =============================================================================
+# Describes the *public* schema of Ferrag et al.'s Edge-IIoTset dataset
+# (commonly distributed as `ML-EdgeIIoT-dataset.csv`, ~157,800 rows spanning
+# 15 classes: Normal + 14 attack types, ~63 raw columns of mixed
+# ARP/ICMP/HTTP/TCP/UDP/DNS/MQTT/Modbus-TCP protocol fields).
+#
+# Same rule as toniot.yaml: this file lists *candidate* column names. The
+# adapter (src/data/edgeiiotset_adapter.py) inspects the real CSV header at
+# runtime and only proceeds with columns it actually finds. It never
+# fabricates a column.
+#
+# VALIDITY NOTE (impact forecasting):
+# Edge-IIoTset DOES expose a timestamp (`frame.time`) and source/destination
+# host identifiers (`ip.src_host`, `ip.dst_host`), so per the project spec
+# we implement the FULL pipeline (stage detection + graph + impact
+# forecasting) on it, not just stage detection. However, two data-quality
+# caveats are checked automatically at load time and reported in
+# results/<dataset>/data_quality_report.json:
+#   1. Low asset cardinality: Edge-IIoTset was captured from a small,
+#      fixed testbed, so `ip.src_host` typically takes very few distinct
+#      values compared to ToN-IoT. This shrinks the effective number of
+#      independent assets available for the asset-disjoint split, which
+#      widens confidence intervals on the forecaster's held-out metrics.
+#   2. Timestamp field varies by capture tool/version (Wireshark
+#      `frame.time` string vs. a numeric epoch in some redistributions).
+#      The adapter attempts robust parsing (`pandas.to_datetime`) and will
+#      hard-fail with a clear message (never silently invent timestamps) if
+#      parsing is not possible for a usable fraction of rows.
+# If either check fails a configurable threshold, the pipeline scripts
+# still run stage detection + graph construction, but skip impact
+# forecasting for Edge-IIoTset and record the reason in the report,
+# per the project's fallback rule.
+# =============================================================================
+
+dataset:
+  name: edgeiiotset
+  raw_dir: data/raw/edgeiiotset
+  preferred_filename: "ML-EdgeIIoT-dataset.csv"
+  file_glob: "*.csv"
+  source_note: >
+    Place the raw Edge-IIoTset CSV(s) in data/raw/edgeiiotset/. Not bundled
+    with this repo (license + size). Dataset: Ferrag et al., "Edge-IIoTset:
+    A New Comprehensive Realistic Cyber Security Dataset of IoT and IIoT
+    Applications", IEEE Access 2022.
+
+schema:
+  timestamp:
+    candidates: [frame.time, "frame_time", timestamp]
+    format: auto                 # let pandas.to_datetime infer; see adapter
+  src_id:
+    candidates: ["ip.src_host", "ip_src_host", src_ip]
+  dst_id:
+    candidates: ["ip.dst_host", "ip_dst_host", dst_ip]
+  src_port:
+    candidates: ["tcp.srcport", "udp.port"]
+  dst_port:
+    candidates: ["tcp.dstport"]
+
+  binary_label:
+    candidates: ["Attack_label", "attack_label"]
+  attack_type:
+    candidates: ["Attack_type", "attack_type"]
+
+  numeric_features:
+    - "arp.opcode"
+    - "arp.hw.size"
+    - "icmp.checksum"
+    - "icmp.seq_le"
+    - "icmp.unused"
+    - "http.content_length"
+    - "http.response"
+    - "tcp.ack"
+    - "tcp.checksum"
+    - "tcp.connection.fin"
+    - "tcp.connection.rst"
+    - "tcp.connection.syn"
+    - "tcp.connection.synack"
+    - "tcp.flags"
+    - "tcp.flags.ack"
+    - "tcp.len"
+    - "tcp.seq"
+    - "udp.stream"
+    - "udp.time_delta"
+    - "dns.qry.name.len"
+    - "dns.qry.qu"
+    - "dns.qry.type"
+    - "dns.retransmission"
+    - "mqtt.conack.flags"
+    - "mqtt.conflag.cleansess"
+    - "mqtt.len"
+    - "mqtt.msgtype"
+    - "mqtt.proto_len"
+    - "mqtt.topic_len"
+    - "mqtt.ver"
+    - "mbtcp.len"
+    - "mbtcp.trans_id"
+    - "mbtcp.unit_id"
+
+  categorical_features:
+    - "http.request.method"
+    - "http.request.version"
+    - "http.tls_port"
+    - "mqtt.hdrflags"
+    - "mqtt.msg_decoded_as"
+    - "mqtt.protoname"
+    - "dns.qry.name"
+
+  drop_cols:
+    - "http.file_data"
+    - "http.request.uri.query"
+    - "http.referer"
+    - "http.request.full_uri"
+    - "tcp.options"
+    - "tcp.payload"
+    - "mqtt.msg"
+    - "mqtt.topic"
+    - "arp.dst.proto_ipv4"
+    - "arp.src.proto_ipv4"
+    - "icmp.transmit_timestamp"
+    - "dns.retransmit_request"
+    - "dns.retransmit_request_in"
+
+asset_definition:
+  asset_id_field: src_id
+  peer_id_field: dst_id
+
+window:
+  delta_t_seconds: 60
+  candidate_delta_t_seconds: [30, 60, 120, 300]
+  label_rule: max_severity
+
+forecasting:
+  horizon_multiple: 30
+  candidate_horizon_multiples: [10, 30, 60]
+  drop_unconfirmed_negatives: true
+  # Data-quality gate: minimum number of distinct assets and minimum
+  # fraction of rows with a parseable timestamp required to attempt
+  # impact forecasting at all. If not met, run_impact_forecasting.py
+  # writes a report explaining why it was skipped instead of failing.
+  min_distinct_assets: 5
+  min_parseable_timestamp_frac: 0.95
+
+split:
+  asset_field: asset_id
+  train_frac: 0.6
+  val_frac: 0.2
+  test_frac: 0.2
+  seed: 42
+
+graph:
+  use_interaction_edges: true
+  use_temporal_edges: true
+  max_interaction_edges_per_window: 200000
+
+models:
+  random_forest:
+    n_estimators: 300
+    max_depth: null
+    min_samples_leaf: 2
+    class_weight: balanced
+    random_state: 42
+    n_jobs: -1
+  gcn:
+    hidden_dim: 64
+    num_layers: 2
+    dropout: 0.3
+    lr: 0.005
+    weight_decay: 0.0005
+    epochs: 100
+    patience: 15
+  meta_learner:
+    type: logistic_regression
+    logistic_regression:
+      C: 1.0
+      max_iter: 2000
+      class_weight: balanced
+    mlp:
+      hidden_layer_sizes: [32]
+      max_iter: 500
+      alpha: 0.001
+    gradient_boosting:
+      n_estimators: 200
+      max_depth: 3
+      learning_rate: 0.05
+  gru_forecaster:
+    hidden_dim: 32
+    num_layers: 1
+    dropout: 0.2
+    lr: 0.001
+    weight_decay: 0.0001
+    epochs: 60
+    patience: 10
+    batch_size: 64
+    max_seq_len: 60
+  xgboost:
+    n_estimators: 300
+    max_depth: 6
+    learning_rate: 0.1
+    subsample: 0.8
+    colsample_bytree: 0.8
+    random_state: 42
+    n_jobs: -1
+  lightgbm:
+    n_estimators: 300
+    max_depth: -1
+    learning_rate: 0.1
+    subsample: 0.8
+    colsample_bytree: 0.8
+    random_state: 42
+    n_jobs: -1
+  temporal_baseline:        # no-graph GRU/LSTM stage-detection baseline
+    cell: gru                # gru | lstm
+    hidden_dim: 32
+    num_layers: 1
+    dropout: 0.2
+    lr: 0.001
+    weight_decay: 0.0001
+    epochs: 60
+    patience: 10
+    batch_size: 64
+    max_seq_len: 60
+
+evaluation:
+  bootstrap_iterations: 1000
+  bootstrap_ci: 0.95
+  capture_at_percents: [1, 2, 5, 10]
+  random_state: 42

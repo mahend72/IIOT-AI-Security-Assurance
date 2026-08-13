@@ -1,0 +1,16 @@
+\begin{table}[t]
+\centering
+\caption{edgeiiotset: graph ablation.}
+\label{tab:edgeiiotset_graph_ablation}
+\begin{tabular}{lllllllllll}
+\toprule
+graph\_mode & nodes & edges & average\_degree & macro\_f1 & f1\_benign & f1\_iad & f1\_lmep & f1\_imp & training\_time\_s & inference\_latency\_ms \\
+\midrule
+interaction\_only & 142,095 & 17,685 & 0.249 & 0.115 & 0.000 & 0.085 & 0.000 & 0.377 & 57.672 & 117.194 \\
+temporal\_only & 142,095 & 0 & 0.000 & 0.228 & 0.048 & 0.404 & 0.000 & 0.461 & 61.137 & 88.650 \\
+both & 142,095 & 17,685 & 0.249 & 0.115 & 0.000 & 0.085 & 0.000 & 0.377 & 58.640 & 87.305 \\
+\bottomrule
+\end{tabular}
+\vspace{2pt}
+\parbox{\linewidth}{\footnotesize Directed-communication and typed/relational edge variants are not implemented in this codebase (the GNN backbones used -- GCN/GraphSAGE/GAT -- are undirected, untyped message-passing layers); only interaction-only / temporal-only / both are reported.}
+\end{table}

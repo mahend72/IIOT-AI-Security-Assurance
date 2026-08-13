@@ -1,0 +1,20 @@
+\begin{table}[t]
+\centering
+\caption{edgeiiotset: four-class stage detection (test, mean$\pm$std over 3 seeds).}
+\label{tab:edgeiiotset_stage_detection}
+\begin{tabular}{llllllll}
+\toprule
+Model & Macro-F1 & Std & F1(Benign) & F1(IAD) & F1(LMEP) & F1(IMP) & N seeds \\
+\midrule
+RF (feature-only) & 0.615 & 0.003 & 1.000 & 0.424 & 0.503 & 0.531 & 3.000 \\
+GCN (graph-only) & 0.348 & 0.136 & 0.444 & 0.251 & 0.315 & 0.382 & 3.000 \\
+Late fusion (RF+GCN) & 0.521 & 0.047 & 0.852 & 0.366 & 0.368 & 0.499 & 3.000 \\
+Stacked RF-GCN & 0.165 & 0.060 & 0.046 & 0.170 & 0.000 & 0.443 & 3.000 \\
+XGBoost & 0.592 & 0.001 & 1.000 & 0.384 & 0.489 & 0.497 & 3.000 \\
+LightGBM & 0.582 & 0.003 & 1.000 & 0.416 & 0.461 & 0.452 & 3.000 \\
+GRU (no-graph temporal) & -- & -- & -- & -- & -- & -- & -- \\
+GraphSAGE & 0.382 & 0.058 & 0.322 & 0.467 & 0.348 & 0.389 & 3.000 \\
+GAT & 0.335 & 0.141 & 0.338 & 0.313 & 0.327 & 0.364 & 3.000 \\
+\bottomrule
+\end{tabular}
+\end{table}

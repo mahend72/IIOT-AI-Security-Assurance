@@ -1,0 +1,17 @@
+\begin{table}[t]
+\centering
+\caption{edgeiiotset: baseline-tuning fairness (selected on VAL only).}
+\label{tab:edgeiiotset_baseline_tuning}
+\begin{tabular}{llllll}
+\toprule
+model & search\_space & selected\_hyperparameters & validation\_metric & val\_score & test\_score \\
+\midrule
+RF & [{'n\_estimators': 100, 'max\_depth': None, 'min\_samples\_leaf': 1}, {'n\_estimators': 300, 'max\_depth': None, 'min\_samples\_leaf': 2}, {'n\_estimators': 300, 'max\_depth': 10, 'min\_samples\_leaf': 2}, {'n\_estimators': 500, 'max\_depth': 20, 'min\_samples\_leaf': 4}] & {'n\_estimators': 300, 'max\_depth': None, 'min\_samples\_leaf': 2} & macro\_f1 & 0.547 & 0.618 \\
+XGBoost & [{'n\_estimators': 100, 'max\_depth': 4, 'learning\_rate': 0.1}, {'n\_estimators': 300, 'max\_depth': 6, 'learning\_rate': 0.1}, {'n\_estimators': 300, 'max\_depth': 6, 'learning\_rate': 0.05}] & {'n\_estimators': 100, 'max\_depth': 4, 'learning\_rate': 0.1} & macro\_f1 & 0.640 & 0.593 \\
+LightGBM & [{'n\_estimators': 100, 'max\_depth': -1, 'learning\_rate': 0.1}, {'n\_estimators': 300, 'max\_depth': -1, 'learning\_rate': 0.1}, {'n\_estimators': 300, 'max\_depth': 8, 'learning\_rate': 0.05}] & {'n\_estimators': 100, 'max\_depth': -1, 'learning\_rate': 0.1} & macro\_f1 & 0.641 & 0.566 \\
+GCN & [{'hidden\_dim': 32, 'lr': 0.005}, {'hidden\_dim': 64, 'lr': 0.005}, {'hidden\_dim': 64, 'lr': 0.01}] & {'hidden\_dim': 64, 'lr': 0.005} & macro\_f1 & 0.499 & 0.185 \\
+GraphSAGE & [{'hidden\_dim': 32, 'lr': 0.005}, {'hidden\_dim': 64, 'lr': 0.005}, {'hidden\_dim': 64, 'lr': 0.01}] & {'hidden\_dim': 32, 'lr': 0.005} & macro\_f1 & 0.537 & 0.299 \\
+GAT & [{'hidden\_dim': 32, 'lr': 0.005}, {'hidden\_dim': 64, 'lr': 0.005}, {'hidden\_dim': 64, 'lr': 0.01}] & {'hidden\_dim': 64, 'lr': 0.005} & macro\_f1 & 0.416 & 0.530 \\
+\bottomrule
+\end{tabular}
+\end{table}
