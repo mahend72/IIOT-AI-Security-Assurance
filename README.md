@@ -38,7 +38,7 @@ The pipeline:
 splitting.py`, `src/preprocessing/features.py`, `src/training/sequence_builder.py`):
 asset-disjoint splitting everywhere an asset identity exists (never a random
 record split); all preprocessing/scaling/graph-construction/threshold decisions
-fit on TRAIN only; the impact forecaster never sees IMP-stage evidence.mmm
+fit on TRAIN only; the impact forecaster never sees IMP-stage evidence.
 
 ---
 
