@@ -1,0 +1,18 @@
+\begin{table}[t]
+\centering
+\caption{toniot: inference latency.}
+\label{tab:toniot_inference_latency}
+\begin{tabular}{ll}
+\toprule
+component & latency\_ms \\
+\midrule
+feature\_aggregation (per instance) & 17.607 \\
+RF scoring (per instance) & 153.151 \\
+GCN full-graph forward pass & 12.719 \\
+GCN node scoring (amortized per test node) & 0.006 \\
+Stacking meta-learner (per instance) & 0.798 \\
+End-to-end (per instance, all applicable stages) & 171.561 \\
+Throughput (instances/sec, end-to-end) & 5.829 \\
+\bottomrule
+\end{tabular}
+\end{table}

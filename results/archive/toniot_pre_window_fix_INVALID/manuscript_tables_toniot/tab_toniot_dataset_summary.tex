@@ -1,0 +1,42 @@
+\begin{table}[t]
+\centering
+\caption{toniot: dataset summary.}
+\label{tab:toniot_dataset_summary}
+\begin{tabular}{lll}
+\toprule
+Metric & Value & Note \\
+\midrule
+raw\_records\_modality & network\_flow (single CSV source) &  \\
+raw\_records\_count & 461,043 &  \\
+raw\_records\_kept\_after\_adapter\_cleaning & 461,043 &  \\
+unit\_of\_analysis & asset-time-window (Delta t seconds) &  \\
+final\_unified\_instances & 11,536 &  \\
+feature\_dimension & 104 &  \\
+delta\_t\_seconds & 60 &  \\
+n\_distinct\_assets & 11,536 &  \\
+stage\_count\_Benign & 11,517 &  \\
+stage\_count\_IAD & 3 &  \\
+stage\_count\_LMEP & 5 &  \\
+stage\_count\_IMP & 11 &  \\
+split\_count\_train & 6,922 &  \\
+split\_count\_val & 2,307 &  \\
+split\_count\_test & 2,307 &  \\
+graph\_nodes & 11,536 &  \\
+graph\_interaction\_edges & 11,555 & undirected edges (endpoints / 2) \\
+graph\_temporal\_edges & 0 & undirected edges (endpoints / 2) \\
+graph\_average\_degree & 2.003 & (interaction+temporal edge endpoints) / nodes \\
+impact\_positive\_asset\_count & 11 &  \\
+impact\_negative\_asset\_count & 11,525 &  \\
+impact\_forecast\_instances\_total & 0 &  \\
+impact\_forecast\_positive\_total & 0 &  \\
+impact\_forecast\_negative\_total & 0 &  \\
+impact\_forecast\_positive\_train & 0 &  \\
+impact\_forecast\_negative\_train & 0 &  \\
+impact\_forecast\_positive\_val & 0 &  \\
+impact\_forecast\_negative\_val & 0 &  \\
+impact\_forecast\_positive\_test & 0 &  \\
+impact\_forecast\_negative\_test & 0 &  \\
+impact\_forecasting\_valid\_overall & 0 & zero pre-impact forecasting instances could be constructed at any split -- every asset's observed activity fits inside a single Delta-t window (no earlier 'cut point' exists before the asset's first IMP window, and/or no later window exists to confirm a negative). \\
+\bottomrule
+\end{tabular}
+\end{table}

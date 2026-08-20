@@ -38,9 +38,22 @@ def _fast_group_mode(work: pd.DataFrame, group_cols: List[str], col: str) -> pd.
 
 
 def assign_window_id(df: pd.DataFrame, delta_t_seconds: float) -> pd.Series:
-    """Global window bucket index: floor(unix_seconds / delta_t)."""
-    epoch_seconds = df[TIMESTAMP_COL].astype("int64") / 1e9  # ns -> s
-    return np.floor(epoch_seconds / delta_t_seconds).astype("int64")
+    """Global window bucket index: floor(unix_seconds / delta_t).
+
+    Resolution-independent: does NOT assume `df[TIMESTAMP_COL]` is
+    `datetime64[ns]`. Pandas (>=2.0) datetime64 columns may carry second,
+    millisecond, microsecond, or nanosecond resolution depending on how
+    they were constructed (e.g. `pd.to_datetime(x, unit="s")` on pandas 3.x
+    returns `datetime64[s]`, not `[ns]`), and `.astype("int64")` returns the
+    integer count in THAT column's native unit, not always nanoseconds.
+    Converting explicitly to `datetime64[s]` first pins the unit before
+    taking the integer view, so this is correct regardless of the input
+    column's resolution.
+    """
+    ts = pd.to_datetime(df[TIMESTAMP_COL], errors="raise")
+    epoch_seconds = ts.to_numpy(dtype="datetime64[s]").astype("int64")
+    window_ids = np.floor(epoch_seconds / float(delta_t_seconds)).astype("int64")
+    return pd.Series(window_ids, index=df.index, dtype="int64")
 
 
 def build_asset_window_instances(

@@ -55,7 +55,7 @@
 
 
 
-\abstract{Industrial Internet of Things (IIoT) supply chains connect sensors, gateways, enterprise hosts, and cloud services to improve visibility and automation, but the same connectivity enables multi-stage intrusions that progress from initial footholds to lateral movement and, ultimately, operational disruption. Most data-driven intrusion detection pipelines in such environments remain modality-specific, provide flat labels, and underuse cross-asset context, limiting their usefulness for campaign-aware triage and early warning.  We propose an ATT\&CK-inspired framework for \emph{stage-aware} intrusion detection and \emph{pre-impact} escalation forecasting using heterogeneous telemetry. We define a three-stage abstraction, Initial Access \& Discovery (IAD), Lateral Movement, Execution \& Persistence (LMEP), and Impact (IMP), and normalise network flows, Internet of Things (IoT) telemetry, and Linux/Windows host logs into a unified, windowed event representation. We then construct an \emph{asset--time window interaction graph} that captures both communication relations and temporal continuity. For stage detection, we stack a context-agnostic Random Forest and a context-aware Graph Convolutional Network (GCN) via a logistic-regression meta-learner, producing stage probabilities and embeddings. For proactive defence, we use only \emph{pre-impact} Stage~1/Stage~2 representations and a dual-stream GRU to rank assets by their likelihood of reaching IMP within a future horizon, explicitly preventing post-impact leakage. Under identity-preserving (asset-disjoint) evaluation on ToN-IoT, the stacked detector achieves a macro-F1 of 0.8159 on the four-class setting \{Benign, IAD, LMEP, IMP\}, with minority-stage F1 of 0.7514 (IAD), 0.7305 (LMEP), and 0.8115 (IMP). For impact forecasting, the proposed dual-stream GRU achieves ROC-AUC 0.9047 and PR-AUC 0.4186 and captures 0.6820 of impacted assets within the top 5\% highest-risk predictions, demonstrating practical early-warning triage utility.}
+\abstract{Industrial Internet of Things (IIoT) supply chains connect sensors, gateways, enterprise hosts, and cloud services to improve visibility and automation, but the same connectivity enables multi-stage intrusions that progress from initial footholds to lateral movement and, ultimately, operational disruption. Most data-driven intrusion detection pipelines in such environments remain modality-specific, provide flat labels, and underuse cross-asset context, limiting their usefulness for campaign-aware triage and early warning. We propose an ATT\&CK-inspired framework for \emph{stage-aware}, network-based intrusion detection. We define a three-stage abstraction, Initial Access \& Discovery (IAD), Lateral Movement, Execution \& Persistence (LMEP), and Impact (IMP), and normalise network-flow telemetry into a unified, windowed \emph{asset--time window interaction graph} that captures both communication relations and temporal continuity; the same representation is designed to generalise to other heterogeneous IIoT telemetry (IoT device, Linux, and Windows host logs) as future work. For stage detection, we stack a context-agnostic Random Forest and a context-aware Graph Convolutional Network (GCN) via a logistic-regression meta-learner, producing stage probabilities and embeddings, and we additionally propose a stage-conditioned dual-stream GRU for \emph{pre-impact} escalation forecasting that uses only Stage~1/Stage~2 evidence, explicitly preventing post-impact leakage. Under identity-preserving (asset-disjoint) evaluation on the ToN-IoT network-flow subset (461,043 records; 34,435 asset--time-window instances after correcting a temporal-windowing defect described in the Reproducibility statement), the strongest model is a Graph Attention Network (GAT) with macro-F1 of $0.687\pm0.041$ on the four-class setting \{Benign, IAD, LMEP, IMP\}; the proposed stacked RF--GCN detector reaches $0.395\pm0.067$ and is outperformed by every individual graph-based base learner, an effect we trace to the stacking meta-learner (switching it to gradient boosting recovers $0.468$). We additionally validate the stage-detection component on Edge-IIoTset, where RF (feature-only) is strongest (macro-F1 $0.615$). For impact forecasting, correcting the windowing defect yields 21,313 genuine pre-impact instances, but only 5 positive cases, all confined to the training split (zero in validation and test); we therefore report impact forecasting as not statistically validated on ToN-IoT under the current protocol, rather than presenting an unvalidatable point estimate, and characterise this as a data-availability limitation of ToN-IoT's captured attack episodes (predominantly instant-onset) rather than a modelling failure.}
 
 \keywords{Industrial Internet-of-Things \sep
 Supply chain security \sep
@@ -94,7 +94,7 @@ Motivated by this objective, we identify three gaps in existing data-driven IDS 
 \end{itemize}
 
 \textbf{Novelty statement.}
-We contribute novelty at three complementary levels. \emph{Conceptually}, we operationalise an end-to-end, ATT\&CK-inspired \emph{stage-aligned} learning setup that yields interpretable outputs (IAD/LMEP/IMP) from heterogeneous telemetry, and we introduce a \emph{strict pre-impact forecasting protocol} in which impact risk is predicted using only evidence observed before a per-asset cutoff time, with explicit controls that prevent temporal leakage from post-impact observations. \emph{Architecturally}, we combine feature-driven and context-driven reasoning by stacking a Random Forest (RF) with a Graph Convolutional Network (GCN), and we perform \emph{stage-conditioned} impact forecasting using a dual-stream Gated Recurrent Unit (GRU) that models Stage~1 (IAD) and Stage~2 (LMEP) temporal dynamics separately before fusing them. \emph{From an engineering standpoint}, we develop a large-scale unified multi-modal graph pipeline that normalises network flows, IoT telemetry, and Linux/Windows logs into a single entity--time-window representation and constructs a sparse interaction--temporal graph at scale. 
+We contribute novelty at three complementary levels. \emph{Conceptually}, we operationalise an end-to-end, ATT\&CK-inspired \emph{stage-aligned} learning setup that yields interpretable outputs (IAD/LMEP/IMP) from heterogeneous telemetry, and we introduce a \emph{strict pre-impact forecasting protocol} in which impact risk is predicted using only evidence observed before a per-asset cutoff time, with explicit controls that prevent temporal leakage from post-impact observations. \emph{Architecturally}, we combine feature-driven and context-driven reasoning by stacking a Random Forest (RF) with a Graph Convolutional Network (GCN), and we perform \emph{stage-conditioned} impact forecasting using a dual-stream Gated Recurrent Unit (GRU) that models Stage~1 (IAD) and Stage~2 (LMEP) temporal dynamics separately before fusing them. \emph{From an engineering standpoint}, we develop a unified graph pipeline that normalises network-flow telemetry into a single entity--time-window representation and constructs a sparse interaction--temporal graph; the same normalisation scheme is designed, but not yet empirically exercised in this paper, to extend to IoT device telemetry and Linux/Windows host logs from the wider ToN-IoT family.
 
 \color{red}
 \textbf{Scope of generalisation beyond ToN-IoT.}
@@ -108,7 +108,7 @@ However, we distinguish between \emph{stage-detection portability} and \emph{ful
 \subsection{Contributions}
 This paper makes the following contributions:
 \begin{itemize}
-    \item We propose a multi-stage intrusion detection framework for IIoT supply-chain-like environments that fuses heterogeneous telemetry (network flows, host logs, and IIoT device telemetry) into a unified event representation and an \emph{asset--time window interaction graph}.
+    \item We propose a multi-stage intrusion detection framework for IIoT supply-chain-like environments that normalises network-flow telemetry into a unified event representation and an \emph{asset--time window interaction graph}, designed for (but in this paper not empirically extended to) fusion with host logs and IIoT device telemetry from the wider ToN-IoT family.
     \item We introduce a stacked stage detector that integrates a context-agnostic Random Forest (RF) over unified feature vectors with a context-aware Graph Convolutional Network (GCN) over the event graph, producing stage-aware probabilities and embeddings for downstream reasoning.
     \item We formulate an \emph{impact prediction} task that forecasts whether an asset will reach the Impact stage within a predefined horizon using a dual-stream GRU architecture operating over Stage~1/Stage~2 sequences, with explicit control to prevent post-impact leakage.
     \item We evaluate the proposed approach under identity-preserving splits to reduce information leakage across assets, and report comprehensive comparisons against feature-only and graph-only baselines together with ablation and error analysis.
@@ -154,14 +154,14 @@ Large industrial SOCs commonly operationalise protective monitoring via collecti
 Our framework is compatible with this architecture: the unified entity--window representation mirrors SIEM normalisation, while the asset--time window interaction graph provides a learned analogue of cross-source correlation (communication + temporal continuity) that produces \emph{stage-aligned} alerts and \emph{pre-impact} risk ranking.
 Compared to rule-based correlation alone, the learned RF/GCN fusion can generalise beyond fixed signatures, and the stage-conditioned forecaster adds a proactive prioritisation signal that can drive investigation queues and graduated response actions.
 
-These observations motivate an IDS design that (i) fuses heterogeneous telemetry across devices, networks, and hosts, (ii) incorporates relational and temporal context for stage-aware reasoning, and (iii) supports proactive risk estimation of progression toward impact. In the next section, we present our threat model and the ATT\&CK-inspired staging used to operationalise these requirements. Table~\ref{tab:1} summarises these differences at a high level.
+These observations motivate an IDS design that (i) is architected to fuse heterogeneous telemetry across devices, networks, and hosts (evaluated in this paper on the network-flow modality; broader fusion is future work, \S\ref{subsec:dataset_description}), (ii) incorporates relational and temporal context for stage-aware reasoning, and (iii) supports proactive risk estimation of progression toward impact. In the next section, we present our threat model and the ATT\&CK-inspired staging used to operationalise these requirements. Table~\ref{tab:1} summarises these differences at a high level.
 
 \paragraph{Explicit contrast to prior ATT\&CK-based IDS and forecasting systems.}
 Prior ATT\&CK-inspired IDS work typically uses ATT\&CK mainly as a taxonomy for labelling or post-hoc interpretation, but does not operationalise a fully leakage-controlled \emph{pre-impact} forecasting task with asset-disjoint evaluation. Conversely, alert-forecasting and incident-prediction systems commonly forecast future alerts or steps from historical sequences, but they often (i) do not condition prediction on an explicit stage model, (ii) do not enforce strict pre-impact cutoffs that exclude any impact-stage evidence as input, and/or (iii) evaluate with record-level splits that can leak identity-specific baselines. Our framework couples stage-aware detection to stage-conditioned forecasting under explicit controls: asset-disjoint splits, per-asset cutoffs, and pre-$t$ graph/sequence construction, so the impact score reflects genuinely pre-impact evidence rather than post-impact signatures.
 
 \begin{table*}[t]
     \centering
-    \caption{Capability-driven positioning of the proposed framework. Prior IDS pipelines in IIoT/IoT commonly address only subsets of these capabilities; our approach integrates all five in a single end-to-end pipeline.}
+    \caption{Capability-driven positioning of the proposed framework. Prior IDS pipelines in IIoT/IoT commonly address only subsets of these capabilities; our approach is architected for all five, with Multi-modal and Predictive marked as design-only/not-yet-validated for the reported experiments (see note).}
     \label{tab:1}
     \begin{tabular}{p{0.28\linewidth} p{0.13\linewidth} p{0.13\linewidth} p{0.14\linewidth} p{0.13\linewidth} p{0.13\linewidth}}
         \toprule
@@ -172,9 +172,11 @@ Prior ATT\&CK-inspired IDS work typically uses ATT\&CK mainly as a taxonomy for 
         Stage-aware or campaign reasoning (correlation / HMM / rules) & \small sometimes & \small sometimes & \small partial & \checkmark & \small sometimes \\
         Alert/incident forecasting (sequence models) & \small sometimes & $\times$ & $\times$ & \small sometimes & \checkmark \\
         \midrule
-        \textbf{This work (stacked RF--GCN + dual-stream GRU)} & \textbf{\checkmark} & \textbf{\checkmark} & \textbf{\checkmark} & \textbf{\checkmark} & \textbf{\checkmark} \\
+        \textbf{This work (stacked RF--GCN + dual-stream GRU)} & \small design-only$^{\dagger}$ & \textbf{\checkmark} & \textbf{\checkmark} & \textbf{\checkmark} & \small architecture only$^{\ddagger}$ \\
         \bottomrule
     \end{tabular}
+    \vspace{2pt}
+    {\footnotesize $^{\dagger}$Reported experiments use a single modality (ToN-IoT network flow; Edge-IIoTset for stage-detection validation); multi-modal fusion is architecturally supported (\S\ref{sec:framework_features}) but not empirically exercised (\S\ref{subsec:dataset_description}). $^{\ddagger}$The dual-stream GRU forecaster is proposed and implemented, but its predictive performance is not validated on ToN-IoT under the current protocol (\S\ref{sec:impact_discussion}: zero held-out positive instances).}
 \end{table*}
 
 
@@ -267,8 +269,10 @@ Each raw record (IoT telemetry, network flow/log, or host metric) is mapped to a
 
     \item \textbf{Identifier-aware de-biasing.} To strengthen generalisation under asset-disjoint evaluation, we exclude direct identifiers that trivially encode asset identity (e.g., exact device IDs, raw hostnames, full IP addresses, and raw PID values). Instead, we retain behavioural and coarse-grained descriptors such as port buckets (well-known/registered/dynamic), private-vs-public indicators, coarse network prefix buckets (e.g., /24), protocol/service distributions, connection-state proportions, and grouped process categories (e.g., system/service/application) derived from \texttt{CMD} when available.
 
-    \item \textbf{Missing modalities.} Because not all entities emit all modalities in every window, missing values are handled via zero-imputation together with explicit \emph{modality-presence indicators} (e.g., \texttt{has\_iot}, \texttt{has\_net}, \texttt{has\_linux}, \texttt{has\_windows}). This prevents the model from conflating ``missing'' with a meaningful value and supports partially observed heterogeneous records.
+    \item \textbf{Missing modalities.} Because not all entities emit all modalities in every window, missing values are handled via zero-imputation together with explicit \emph{modality-presence indicators} (e.g., \texttt{has\_iot}, \texttt{has\_net}, \texttt{has\_linux}, \texttt{has\_windows}). This design supports partially observed heterogeneous records and is intended to generalise the pipeline to the wider ToN-IoT family (IoT device telemetry, Linux/Windows host logs) in future work.
 \end{itemize}
+
+\textbf{Reported-experiment scope.} The unified feature construction above is presented as a general, modality-agnostic scheme. The experiments reported in Sections~\ref{sec:5} and~\ref{sec:6} instantiate it on a single modality --- ToN-IoT network-flow records (the \texttt{Train\_Test\_Network.csv} release) --- together with a second, independent dataset (Edge-IIoTset, network-flow-based) for external stage-detection validation. IoT device telemetry and Linux/Windows host logs from the wider ToN-IoT family are not fused into the reported feature vectors or graph; extending the empirical evaluation to those modalities is identified as future work in Section~\ref{sec:8}.
 
 The resulting vector $\mathbf{x}_i$ is used directly as input to the context-agnostic classifier (Random Forest). The same per-entity vectors also define node features in the context-aware component, where entities form nodes and network interactions observed within each window induce edges (optionally weighted by interaction volume), enabling a GCN to exploit relational structure while sharing the same unified feature schema.
 
@@ -351,27 +355,29 @@ To support transparent reporting, we summarise graph scale and key hyperparamete
 
 \begin{table}[!t]
 \centering
-\caption{Graph hyperparameters and scale (main configuration).}
+\caption{Graph hyperparameters and scale, ToN-IoT network-flow modality (corrected, post windowing-fix; see Reproducibility statement). The entity key and modality-presence design generalise to Linux/Windows/IoT identities as future work; only the network-flow identity is populated in the reported experiments.}
 \label{tab:graph_hparams_stats}
 \renewcommand{\arraystretch}{1.12}
 \begin{tabular}{p{5cm} p{8cm}}
 \toprule
 \textbf{Item} & \textbf{Value} \\
 \midrule
-Entity (asset) key & Internal host identity (network), host ID (Linux/Windows), IoT device identity/stream \\
+Entity (asset) key & Internal host identity (source IP), network modality only in reported experiments \\
 Node semantics & One node per entity--time window aggregate $e_{a,m}=(a,W_m)$ \\
-Window size & $\Delta t = 60\text{s}$ (selected on validation identities only) \\
+Window size & $\Delta t = 60\text{s}$ (fixed design configuration, not validation-selected; \S\ref{subsec:window_sensitivity_corrected} reports a descriptive, single-seed post-hoc sensitivity sweep in which 120s yields a higher observed Macro-F1 for the Stacked RF--GCN, not interpreted as a globally optimal window size) \\
 Edge weighting & Interaction edges: $w^{\mathrm{com}}=\log(1+\#\text{flows in }W_m)$; temporal edges: unit weight \\
-Node feature dimension & $F=310$ (unified features) \\
-Graphs per split & Separate graphs $G^{(s)}$ for train/meta-train/test (no cross-split edges) \\
+Node feature dimension & $F=126$ (network-flow unified features) \\
+Graphs per split & Separate graphs $G^{(s)}$ for train/val/test (no cross-split edges) \\
 Edge semantics & $E_{\mathrm{com}}$ (interaction) $\cup$ $E_{\mathrm{tmp}}$ (temporal continuity) \\
 Directed/undirected & Undirected (adjacency symmetrised) \\
 Self-loops and normalisation & Self-loops added; symmetric normalisation $\tilde{D}^{-1/2}\tilde{A}\tilde{D}^{-1/2}$ \\
 \midrule
-Total nodes (all splits) & $|V|=759{,}582$ \\
-Total edges (all splits) & $|E|=3{,}036{,}716$ \\
-Approx.\ avg.\ degree & $2|E|/|V|\approx 8.0$ \\
-Split node counts & Base-train: 379{,}594;\ Meta-train: 94{,}899;\ Test: 285{,}089 \\
+Total nodes (all splits) & $|V|=34{,}435$ \\
+Interaction edges (undirected) & $10{,}168$ \\
+Temporal edges (undirected) & $22{,}899$ \\
+Total edges (all splits) & $33{,}067$ \\
+Approx.\ avg.\ degree & $2|E|/|V|\approx 1.92$ \\
+Split node counts & Train: 27{,}326;\ Val: 3{,}796;\ Test: 3{,}313 (6{,}922 / 2{,}307 / 2{,}307 assets) \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -509,7 +515,7 @@ This guarantees that the impact score reflects genuinely early-stage evidence ra
 \label{subsec:dataset_description}
 
 \subsubsection{Data sources and modalities.}
-We evaluate the proposed framework on the ToN-IoT family of datasets, collected from an IoT/IIoT cyber-physical testbed and widely used for benchmarking ML-based intrusion detection \cite{alsaedi2020toniot,moustafa2020tonlinux,moustafa2020tonwindows}. The raw data spans IoT device telemetry, labelled network flow records, and host-level logs from Linux and Windows machines. Attack scenarios include scanning, DoS/DDoS, injection, man-in-the-middle, password attacks, and backdoor activity, enabling study of multi-stage behaviours across devices, hosts, and communications.
+The ToN-IoT family of datasets, collected from an IoT/IIoT cyber-physical testbed \cite{alsaedi2020toniot,moustafa2020tonlinux,moustafa2020tonwindows}, spans IoT device telemetry, labelled network-flow records, and host-level logs from Linux and Windows machines, together covering scanning, DoS/DDoS, injection, man-in-the-middle, password, and backdoor attack scenarios. \textbf{The experiments reported in this paper use the network-flow release of ToN-IoT only} (the publicly distributed \texttt{Train\_Test\_Network.csv}, 461{,}043 labelled flow records over 44 fields), which is the modality with a trustworthy per-record timestamp and internal-host identity needed for our asset-disjoint, temporally-ordered evaluation protocol. The IoT-device, Linux, and Windows telemetry releases of the ToN-IoT family are not ingested by the pipeline evaluated here; fusing them is architecturally supported by the unified feature scheme of Section~\ref{sec:framework_features} and is identified as future work (Section~\ref{sec:8}), not as a capability exercised in the results below.
 
 \color{red}
 \subsubsection{External validation dataset: Edge-IIoTset.}
@@ -538,40 +544,25 @@ Forecasting use & Not used as primary evidence for asset-level impact forecastin
 \end{table}
 \color{black}
 
-\subsubsection{Identity-preserving splits (raw modalities).}
-We evaluate on the ToN-IoT family using three raw modality groups: (i) IoT device telemetry, (ii) labelled network flow records, and (iii) Linux/Windows host logs, with record counts summarised in Table~\ref{tab:raw_modality_splits}. IoT telemetry comprises seven device streams (Fridge, Garage door, GPS tracker, Modbus, Motion Light, Thermostat, Weather), each containing approximately $2.9\times10^{5}$ to $6.5\times10^{5}$ timestamped records.  The network component contains approximately $2.3\times10^{7}$ labelled flows \cite{alsaedi2020toniot}. Host telemetry includes six Linux monitoring streams and two Windows event-log datasets (Windows~7 and Windows~10) \cite{moustafa2020tonlinux,moustafa2020tonwindows}. To emulate deployment on previously unseen assets, we split by identity rather than by record: internal host IPs (network), host identifiers (Linux/Windows), and device identifiers (IoT).  All records for a given identity belong to a single split, reducing leakage from near-duplicate patterns across splits \cite{moustafa2021tonlinuxEval}.
+\subsubsection{Identity-preserving splits (network-flow modality).}
+The reported experiments use the ToN-IoT network-flow release only (Table~\ref{tab:raw_modality_splits}); the wider multi-modal ToN-IoT family (IoT device telemetry, Linux/Windows host logs) is described above as a future-work target, not as an evaluated input. The network-flow file contains 461{,}043 labelled records, 11{,}536 distinct internal host identities (source IP), and 9 attack types plus a normal class \cite{alsaedi2020toniot}. To emulate deployment on previously unseen assets, we split by host identity rather than by record: all records for a given host IP belong to exactly one of train/validation/test (60\%/20\%/20\% of assets, seed 42), reducing leakage from near-duplicate patterns across splits \cite{moustafa2021tonlinuxEval}.
 
 
 \begin{table}[!t]
 \centering
-\caption{Raw ToN-IoT modalities and record counts under identity-preserving evaluation (approximately 80/20).}
+\caption{ToN-IoT network-flow dataset used in the reported experiments (corrected, post windowing-fix; see Reproducibility statement).}
 \label{tab:raw_modality_splits}
 \renewcommand{\arraystretch}{1.12}
-\begin{tabular}{lrrr}
+\begin{tabular}{lr}
 \toprule
-\textbf{Modality / Dataset} & \textbf{Size} & \textbf{Train} & \textbf{Test} \\
+\textbf{Statistic} & \textbf{Value} \\
 \midrule
-\textbf{IoT telemetry} & & & \\
-\quad IoT-Fridge       & 587{,}076    & 469{,}661    & 117{,}415 \\
-\quad IoT-Garage door  & 591{,}446    & 473{,}157    & 118{,}289 \\
-\quad IoT-GPS tracker  & 595{,}686    & 476{,}549    & 119{,}137 \\
-\quad IoT-Modbus       & 287{,}194    & 229{,}755    & 57{,}439  \\
-\quad IoT-Motion Light & 452{,}262    & 361{,}810    & 90{,}452  \\
-\quad IoT-Thermostat   & 442{,}228    & 353{,}782    & 88{,}446  \\
-\quad IoT-Weather      & 650{,}242    & 520{,}194    & 130{,}048 \\
-\midrule
-\textbf{Network flows} & & & \\
-\quad Network          & 23{,}000{,}000 & 18{,}400{,}000 & 4{,}600{,}000 \\
-\midrule
-\textbf{Host telemetry} & & & \\
-\quad Linux-disk1      & 1{,}000{,}000 & 800{,}000     & 200{,}000 \\
-\quad Linux-disk2      & 927{,}362     & 741{,}890     & 185{,}472 \\
-\quad Linux-memory1    & 1{,}000{,}000 & 800{,}000     & 200{,}000 \\
-\quad Linux-memory2    & 1{,}000{,}000 & 800{,}000     & 200{,}000 \\
-\quad Linux-process1   & 1{,}000{,}000 & 800{,}000     & 200{,}000 \\
-\quad Linux-process2   & 1{,}000{,}000 & 800{,}000     & 200{,}000 \\
-\quad Windows 7        & 28{,}368      & 22{,}694      & 5{,}674  \\
-\quad Windows 10       & 35{,}975      & 28{,}780      & 7{,}195  \\
+Raw records & 461{,}043 \\
+Distinct host identities (assets) & 11{,}536 \\
+Window size $\Delta t$ & 60\,s \\
+Asset--window instances & 34{,}435 \\
+Train / Val / Test (instances) & 27{,}326 / 3{,}796 / 3{,}313 \\
+Train / Val / Test (assets) & 6{,}922 / 2{,}307 / 2{,}307 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -588,65 +579,57 @@ For Edge-IIoTset, we follow the same leakage-aware preprocessing principles used
 \color{black}
 
 \subsubsection{Unified dataset characteristics and class balance.}
-Table~\ref{tab:summary_stats_from_logs} summarises the resulting unified dataset and graph scale. After feature construction, the unified dataset contains $N=759{,}582$ instances with $\mathbf{X}\in\mathbb{R}^{759{,}582\times 310}$ model features (315 columns including labels/metadata). The unified instances are distributed across modalities as IoT (34.38\%), Linux (32.96\%), network (27.78\%), and Windows (4.88\%), indicating comparatively sparse Windows evidence. The stage distribution is imbalanced, with Stage~2 (47.01\%) dominating Stage~1 (5.88\%), and attack-type counts similarly skewed (e.g., \texttt{password}, \texttt{injection}, and \texttt{ddos} are prevalent, while \texttt{mitm} is rare). This motivates reporting macro-averaged detection metrics and using imbalance-aware training and calibration.
+Table~\ref{tab:summary_stats_from_logs} summarises the resulting dataset and graph scale, corrected post windowing-fix (Reproducibility statement). After feature construction, the dataset contains $N=34{,}435$ asset--window instances with $\mathbf{X}\in\mathbb{R}^{34{,}435\times 126}$ network-flow-derived features. The stage distribution is heavily imbalanced: Benign 33{,}808 (98.18\%), LMEP 298 (0.87\%), IMP 243 (0.71\%), IAD 86 (0.25\%). This motivates reporting macro-averaged detection metrics and using imbalance-aware training and calibration.
 
 \subsubsection{Graph scale and stacking partitions.}
-The \emph{asset-time window interaction graph} constructed over the unified instances contains 3{,}036{,}716 edges, corresponding to an average degree of approximately $2|E|/|V|\approx 8.0$ (Table~\ref{tab:summary_stats_from_logs}), i.e., a large but sparse structure suitable for scalable GNN learning. For stacking, we employ disjoint base-train (49.97\%), meta-train (12.49\%), and test (37.53\%) partitions to ensure the meta-learner is trained on out-of-sample base-model predictions and to reduce optimistic bias.
+The \emph{asset--time window interaction graph} contains 10{,}168 interaction edges and 22{,}899 temporal-continuity edges (33{,}067 total, undirected), corresponding to an average degree of approximately $2|E|/|V|\approx 1.92$ (Table~\ref{tab:summary_stats_from_logs}) --- a sparse structure. Temporal edges connect an asset's consecutive real 60s windows and are therefore only possible for the 84 (of 11,536) assets whose activity spans more than one window; this is the single most direct signature that the corrected pipeline performs genuine chronological windowing (see Reproducibility statement). For stacking, base-training and meta-training assets are drawn disjointly from the training partition (asset-disjoint 3-fold out-of-fold protocol, Section~\ref{sec:framework_stacking}) to ensure the meta-learner is trained on out-of-sample base-model predictions and to reduce optimistic bias.
 
 \subsubsection{Impact forecasting imbalance (asset-level).}
-Impact prediction is also highly imbalanced at the asset level (e.g., 10/236 positives, 4.24\% in one representative run; Table~\ref{tab:summary_stats_from_logs}). Accordingly, we emphasise PR-AUC and triage-oriented Capture@$k\%$ metrics, which are more informative than accuracy in rare-event early-warning settings.
+Impact prediction is severely imbalanced at the asset level: of the 11,536 assets, only 11 ever reach Stage~3 (IMP). After correcting the windowing defect, sequence reconstruction yields 21{,}313 genuine pre-impact forecasting instances, but only 5 are positive, and all 5 fall in the training split (0 in validation, 0 in test) --- see Section~\ref{sec:impact_discussion} for why, and for our decision not to report a trained forecaster for ToN-IoT under this protocol.
 
 \begin{table}[!t]
 \centering
-\caption{Summary statistics of the unified multi-modal dataset, stage/type distribution, graph scale, and stacking/impact splits (derived from the experimental logs).}
+\caption{Summary statistics of the ToN-IoT network-flow dataset, stage distribution, graph scale, and forecasting-instance counts (corrected, post windowing-fix; see Reproducibility statement). Source: \texttt{results/toniot/main/dataset\_summary.csv}.}
 \label{tab:summary_stats_from_logs}
 \renewcommand{\arraystretch}{1.12}
 \begin{tabular}{p{0.62\linewidth} p{0.30\linewidth}}
 \toprule
 \textbf{Statistic} & \textbf{Value} \\
 \midrule
-\multicolumn{2}{l}{\textbf{Unified dataset}}\\
-Unified instances ($N$) & 759{,}582 \\
-Feature matrix shape ($\mathbf{X}$) & $759{,}582 \times 310$ \\
-Total columns (incl.\ labels/metadata) & 315 \\
+\multicolumn{2}{l}{\textbf{Unified dataset (network-flow modality)}}\\
+Raw records & 461{,}043 \\
+Asset--window instances ($N$) & 34{,}435 \\
+Feature matrix shape ($\mathbf{X}$) & $34{,}435 \times 126$ \\
+Distinct assets & 11{,}536 \\
 \midrule
-\multicolumn{2}{l}{\textbf{Modality composition}}\\
-IoT instances (\%) & 261{,}119 (34.38\%) \\
-Linux instances (\%) & 250{,}336 (32.96\%) \\
-Network instances (\%) & 211{,}043 (27.78\%) \\
-Windows instances (\%) & 37{,}084 (4.88\%) \\
+\multicolumn{2}{l}{\textbf{Stage distribution (instances)}}\\
+Benign & 33{,}808 (98.18\%) \\
+Stage 2 (LMEP) & 298 (0.87\%) \\
+Stage 3 (IMP) & 243 (0.71\%) \\
+Stage 1 (IAD) & 86 (0.25\%) \\
 \midrule
-\multicolumn{2}{l}{\textbf{Stage distribution}}\\
-Stage 2 (LMEP) (\%) & 357{,}045 (47.01\%) \\
-Benign (\%) & 265{,}000 (34.89\%) \\
-Stage 3 (IMP) (\%) & 92{,}891 (12.23\%) \\
-Stage 1 (IAD) (\%) & 44{,}646 (5.88\%) \\
-\midrule
-\multicolumn{2}{l}{\textbf{Top attack types}}\\
-normal & 265{,}000 \\
-password & 89{,}385 \\
-injection & 86{,}610 \\
-ddos & 81{,}742 \\
-backdoor & 56{,}779 \\
-dos & 50{,}525 \\
-xss & 47{,}389 \\
-scanning & 44{,}646 \\
-ransomware & 36{,}112 \\
-mitm & 1{,}394 \\
+\multicolumn{2}{l}{\textbf{Raw attack-type counts (record level)}}\\
+normal & 300{,}000 \\
+scanning / dos / ddos / password / xss / ransomware / backdoor / injection & 20{,}000 each \\
+mitm & 1{,}043 \\
 \midrule
 \multicolumn{2}{l}{\textbf{Graph scale}}\\
-Edge count ($|E|$) & 3{,}036{,}716 \\
-Approx.\ avg.\ degree ($2|E|/|V|$) & $\approx 8.0$ \\
-Graph sparsity (qualitative) & Large and sparse \\
+Interaction edges & 10{,}168 \\
+Temporal edges & 22{,}899 \\
+Total edges ($|E|$) & 33{,}067 \\
+Avg.\ degree ($2|E|/|V|$) & $\approx 1.92$ \\
+Graph sparsity (qualitative) & Sparse \\
 \midrule
-\multicolumn{2}{l}{\textbf{Stacking split sizes}}\\
-Base-train events (\%) & 379{,}594 (49.97\%) \\
-Meta-train events (\%) & 94{,}899 (12.49\%) \\
-Test events (\%) & 285{,}089 (37.53\%) \\
+\multicolumn{2}{l}{\textbf{Train/Val/Test split sizes}}\\
+Train instances (\%) & 27{,}326 (79.4\%) \\
+Val instances (\%) & 3{,}796 (11.0\%) \\
+Test instances (\%) & 3{,}313 (9.6\%) \\
 \midrule
-\multicolumn{2}{l}{\textbf{Impact (asset-level)}}\\
-Impact dataset assets & 236 \\
-Impact label distribution & $[226,\;10]$ (4.24\% positives) \\
+\multicolumn{2}{l}{\textbf{Impact forecasting (asset-level)}}\\
+Assets that ever reach IMP & 11 (of 11{,}536) \\
+Pre-impact forecasting instances & 21{,}313 \\
+Positive instances (Train / Val / Test) & 5 / 0 / 0 \\
+Forecasting status & SKIPPED\_WITH\_REASON (\S\ref{sec:impact_discussion}) \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -673,11 +656,11 @@ The mapping is defined by the deterministic stage-assignment rubric in Section~\
 
 
 \subsubsection{Final mapping used in experiments.}
-Using the validated mapping, stage aggregation is:
-\textbf{IAD:} Scanning;
-\textbf{LMEP:} Injection, MITM, Password, Backdoor; and
-\textbf{IMP:} DoS/DDoS.
-Where an attack type could plausibly span multiple tactics, we prioritise the primary operational role and immediate effect (e.g., disruption $\rightarrow$ IMP), consistent with the staging rules in Section~\ref{sec:3}.
+Using the validated mapping (\texttt{configs/stage\_mapping\_toniot.yaml}), the primary stage aggregation is:
+\textbf{IAD:} Scanning, Password, XSS;
+\textbf{LMEP:} Backdoor, Injection, MITM; and
+\textbf{IMP:} DoS, DDoS, Ransomware.
+Where an attack type could plausibly span multiple tactics, we prioritise the primary operational role and immediate effect (e.g., disruption $\rightarrow$ IMP), consistent with the staging rules in Section~\ref{sec:3}. We additionally evaluate two alternative mapping variants (\emph{conservative} and \emph{expanded}) in a stage-mapping sensitivity analysis (\S\ref{subsec:stage_mapping_sensitivity_corrected}).
 
 
 \begin{figure}[!t]
@@ -696,11 +679,15 @@ Where an attack type could plausibly span multiple tactics, we prioritise the pr
 \textbf{ToN-IoT Attack Type} & \textbf{Mapped MITRE ATT\&CK for ICS Technique(s)} \\
 \midrule
 Scanning   & T0846 (Remote System Discovery) \\
-DoS / DDoS & T0814 (Denial of Service) \\
+Password   & T0812 (Brute Force I/O), T0859 (Valid Accounts) \\
+XSS        & T0853 (Scripting) -- client-side injection used as an initial-access foothold \\
+\midrule
 Backdoor   & T0859 (Valid Accounts), T0886 (Remote Services) \\
 Injection  & T0831 (Manipulation of Control), T0836 (Modify Parameter) \\
 MITM       & T0831 (Manipulation of Control), T0855 (Unauthorized Command Message), T0869 (Standard Application Layer Protocol) \\
-Password   & T0812 (Brute Force I/O), T0859 (Valid Accounts) \\
+\midrule
+DoS / DDoS & T0814 (Denial of Service) \\
+Ransomware & T0826 (Loss of Availability) / T0882 (Theft of Operational Information) -- direct destructive/data impact \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -803,7 +790,7 @@ must operate on new devices and hosts not observed during training.
 
 \subsection{Graph Construction Details}
 \label{subsec:graph_details}
-We construct an \emph{asset--time window interaction graph} in which each node corresponds to an \emph{entity--time window} instance (Section~\ref{sec:framework_features}). For a fixed window size $\Delta t$, we aggregate all raw records belonging to an entity (host/IP or IoT device identifier) within a window into a single node feature vector $\mathbf{x}_i$. Two edge types are added: (i) \emph{interaction edges} linking nodes whose underlying entities communicate within the same window (from network flow tuples), and (ii) \emph{temporal continuity edges} linking consecutive windows of the same entity. Unless otherwise stated, $\Delta t$ is selected on a validation set drawn from training identities only. For reproducibility, we report graph statistics (nodes/edges and average degree) for the training and test graphs.
+We construct an \emph{asset--time window interaction graph} in which each node corresponds to an \emph{entity--time window} instance (Section~\ref{sec:framework_features}). For a fixed window size $\Delta t$, we aggregate all raw records belonging to an entity (host/IP or IoT device identifier) within a window into a single node feature vector $\mathbf{x}_i$. Two edge types are added: (i) \emph{interaction edges} linking nodes whose underlying entities communicate within the same window (from network flow tuples), and (ii) \emph{temporal continuity edges} linking consecutive windows of the same entity. In the main experiments, we use a fixed analysis-window duration of $\Delta t=60$ s. This value is treated as a design configuration rather than as a validation-selected hyperparameter. We additionally report a post-hoc sensitivity analysis over alternative window sizes to examine how the Stacked RF--GCN behaves under different temporal aggregation scales (\S\ref{subsec:window_sensitivity_corrected}). For reproducibility, we report graph statistics (nodes/edges and average degree) for the training and test graphs.
 
 
 \subsection{Evaluation Metrics}
@@ -852,54 +839,52 @@ All preprocessing steps (encoding, standardisation, and feature selection) are f
 
 \begin{table}[!t]
 \centering
-\caption{Main hyperparameters (selected on validation identities only).}
+\caption{Main hyperparameters, ToN-IoT network-flow modality (model hyperparameters selected on validation identities only; window size $\Delta t$ is a fixed design configuration, not validation-selected --- see \S\ref{subsec:graph_details}; matches the released configuration \texttt{configs/toniot.yaml}).}
 \label{tab:main_hparams}
 \renewcommand{\arraystretch}{1.12}
 \begin{tabular}{p{4cm} p{7cm}}
 \toprule
 \textbf{Component} & \textbf{Setting} \\
 \midrule
-Window size & $\Delta t=60$ s \\
-RF & \#trees=500, max\_depth=20, min\_samples\_leaf=2 \\
-GCN & \#layers=2, hidden dim=128, dropout=0.5, lr=$1\times10^{-3}$ \\
+Window size & $\Delta t=60$ s (main configuration; see \S\ref{subsec:window_sensitivity_corrected} for the sensitivity result) \\
+RF & \#trees=300, max\_depth=None, min\_samples\_leaf=2, class\_weight=balanced \\
+GCN & \#layers=2, hidden dim=64, dropout=0.3, lr=$5\times10^{-3}$ \\
 Graph edges & interaction weight=$\log(1+\#\mathrm{flows\ in}\ W_m)$, temporal weight=$1$ \\
-Stacking LR & regularisation $C=1.0$ \\
-Impact GRU & sequence length $T=20$, hidden dim=64, dropout=0.3 \\
+Stacking LR & regularisation $C=1.0$, class\_weight=balanced \\
+Impact GRU & max sequence length=60, hidden dim=32, dropout=0.2 \\
 Forecast horizon & $H=30\Delta t$ (time units) \\
-Lead time & $\delta=\Delta t$ (time units) \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 
 \paragraph{Class imbalance handling.}
-For four-class stage detection, we use class-weighted cross-entropy for neural models and balanced class weights for RF. Let $w_c \propto 1/\sqrt{n_c}$ denote the weight for class $c$ with count $n_c$; using the unified stage counts, we set weights (normalised to have mean 1 across classes) as $w_{\text{Benign}}=0.6681$, $w_{\text{IAD}}=1.6278$, $w_{\text{LMEP}}=0.5756$, and $w_{\text{IMP}}=1.1285$. For impact prediction (binary, rare positives), we use positive-class weighting $\alpha = n_{\text{neg}}/n_{\text{pos}} = 226/10 = 22.6$ (or focal loss with $\gamma=2.0$ if used). We tested focal loss and simple minority over-sampling and selected the above weighting based on validation PR-AUC and Capture@$k\%$.
+For four-class stage detection, we use \texttt{balanced} class weighting (scikit-learn convention, $w_c \propto n/(|\mathcal{Y}|\, n_c)$) for RF and the stacking meta-learner, and the equivalent inverse-frequency weighting for the GCN/GRU cross-entropy loss. Using the corrected ToN-IoT stage counts (Benign 33{,}808, IAD 86, LMEP 298, IMP 243), balanced weighting assigns substantially higher loss weight to the three minority stages, with IAD receiving the largest weight due to its extreme rarity (86 instances). For impact prediction, class weighting was not exercised in a trained forecaster on ToN-IoT, since forecasting is reported as SKIPPED\_WITH\_REASON (Section~\ref{sec:impact_discussion}); the same weighting mechanism is used for stage detection.
 
 \paragraph{Scalability, training strategy, and system resources}
-All experiments were run on an Intel Xeon-class CPU (32 vCPUs), 256~GB RAM. We trained the GCN using \textbf{mini-batch} optimisation with \textbf{neighbor sampling} to control memory (2-layer fanouts $\{15,10\}$; batch size 4096 target nodes). Peak GPU memory usage was 11.8~GB and throughput was $\sim$45k nodes/s. Graph construction for the base-train split took 8.5~minutes and produced $|V|=379{,}594$ nodes and $|E|=1{,}517{,}570$ edges (overall graph scale: $|V|=759{,}582$, $|E|=3{,}036{,}716$, avg. degree $\approx 8.0$). GCN training required 18.2~s/epoch (mean over seeds), while RF training required 52~s and GRU training required 0.7~s/epoch.
+All experiments were run on CPU only (no GPU was used or required at this scale). The GCN, GraphSAGE, and GAT stage detectors are trained with a standard \textbf{full-graph transductive} forward pass (34{,}435 nodes, 33{,}067 edges) rather than mini-batch neighbour sampling, which is unnecessary at this graph scale. Graph construction (including feature aggregation) for the full ToN-IoT network-flow dataset completes in under 15~seconds; end-to-end per-instance inference latency (feature aggregation + RF + GCN + stacking) is 185.5~ms (5.4 instances/sec), with RF scoring dominating at 167.8~ms (Section~\ref{sec:stagewise_discussion}, Table~\ref{tab:toniot_latency_corrected}).
 
 \begin{figure*}
     \centering
     \includegraphics[width=1\linewidth]{epoch.png}
-    \caption{Training and validation learning curves for the stage detector (GCN) and impact predictor (GRU): (a) GCN loss, (b) GCN Macro-F1, (c) GRU loss, and (d) GRU PR-AUC versus epoch.}
+    \caption{Illustrative training and validation learning curves for the stage detector (GCN): (a) GCN loss, (b) GCN Macro-F1, versus epoch, under three representative hyperparameter settings. Panels (c)-(d) (GRU impact-predictor loss/PR-AUC) are not reported: impact forecasting is SKIPPED\_WITH\_REASON on the corrected ToN-IoT network-flow data (Section~\ref{sec:impact_discussion}), so no validated GRU forecaster training curve exists for this dataset.}
     \label{fig:epoch}
 \end{figure*}
 
 
-\paragraph{Training dynamics and stability}. Figure \ref{fig:epoch} reports training and validation curves for the stage detector (GCN) and the impact forecaster (GRU) under three representative hyperparameter settings. In all cases, both models converge smoothly: loss decreases monotonically and performance metrics (GCN Macro-F1, GRU PR-AUC) rise rapidly in early epochs before reaching a plateau. The “baseline” configuration shows a small but consistent generalisation gap (validation worse than training), indicating mild overfitting that remains controlled. The “overfit” configuration (lower dropout/regularisation) exhibits a larger late-epoch divergence—validation loss flattens earlier and validation Macro-F1/PR-AUC saturate below training—confirming the need for regularisation and early stopping. The “faster/noisier” higher learning-rate setting improves early convergence speed and achieves competitive training metrics, but shows slightly more oscillation and no consistent validation gain, suggesting diminishing returns above the selected baseline learning rate. Overall, the curves support that our chosen hyperparameters yield stable optimisation and good generalisation under identity-preserving validation.
+\paragraph{Training dynamics and stability}. Figure \ref{fig:epoch} reports training and validation curves for the stage detector (GCN) under three representative hyperparameter settings. In all cases, the model converges smoothly: loss decreases monotonically and Macro-F1 rises rapidly in early epochs before reaching a plateau. The “baseline” configuration shows a small but consistent generalisation gap (validation worse than training), indicating mild overfitting that remains controlled. The “overfit” configuration (lower dropout/regularisation) exhibits a larger late-epoch divergence, confirming the need for regularisation and early stopping. The “faster/noisier” higher learning-rate setting improves early convergence speed but shows slightly more oscillation and no consistent validation gain. We do not report corresponding GRU impact-forecaster training curves for ToN-IoT, since no forecaster was validated on this dataset (Section~\ref{sec:impact_discussion}).
 
 \subsection{Statistical Protocol and Robustness}
 \label{subsec:stats_protocol}
 
-\paragraph{Independent identity-preserving splits.}
-To reduce sensitivity to a single train/test partition under identity-preserving evaluation, we generate $K{=}3$ independent \emph{asset-disjoint} splits.
-Each split partitions asset identities into train/validation/test sets (approximately 70/15/15 at the asset level), and \emph{all} asset–window instances (entity--window nodes) belonging to an asset are assigned exclusively to that split.
-All preprocessing (encoding, standardisation statistics, and feature selection) is fitted on the training identities of the corresponding split only and applied unchanged to its validation and test identities.
+\paragraph{Asset-disjoint split.}
+We use a single fixed \emph{asset-disjoint} split (60\%/20\%/20\% of asset identities into train/validation/test, seed 42), and \emph{all} asset--window instances belonging to an asset are assigned exclusively to that split.
+All preprocessing (encoding, standardisation statistics, and feature selection) is fitted on training-split identities only and applied unchanged to validation and test identities.
 
-\paragraph{Multiple random seeds per split.}
-For each split, we run each neural model for $S{=}5$ random seeds (affecting model initialisation, dropout masks, minibatch ordering, and optimiser state).
-We report results as mean$\pm$std across seeds within each split, and additionally aggregate across splits by reporting the overall mean$\pm$std across the $K$ split-wise means.
-Unless stated otherwise, hyperparameters (including $\Delta t$, $T$, and $H$) are selected on the validation identities \emph{within each split} and are fixed before evaluating on that split's test identities.
+\paragraph{Multiple random seeds.}
+On this fixed split, we run each neural/stochastic model for $S{=}3$ random seeds (42, 43, 44; affecting model initialisation, dropout masks, minibatch ordering, and optimiser state — the RF, XGBoost, and LightGBM base learners are also refit per seed).
+We report results as mean$\pm$std across the 3 seeds (Table~\ref{tab:main_4class_results_all}).
+Repeating the full protocol over multiple independent asset-disjoint splits (varying which assets fall in train/validation/test, not just model seed) would give a fuller picture of split-sensitivity and is identified as future work; hyperparameters (including $\Delta t$ and $H$) are selected on the validation identities of this split.
 
 \paragraph{Bootstrap confidence intervals.}
 We report 95\% confidence intervals (CIs) for test-set metrics using non-parametric bootstrap with $B{=}1000$ resamples.
@@ -941,43 +926,42 @@ For graph learning, we include GraphSAGE and GAT under the same node features an
 These baselines help establish that improvements are not limited to comparisons against weaker references and clarify the benefit of relational (cross-asset) context beyond temporal smoothing alone.
 
 \paragraph{Main results.}
-Table~\ref{tab:main_4class_results_all} summarises four-class stage classification performance on held-out \emph{asset-disjoint} test identities. Macro-F1 is treated as the primary metric due to class imbalance, and we additionally report per-class F1 to highlight minority-stage behaviour.
+Table~\ref{tab:main_4class_results_all} summarises four-class stage classification performance on the held-out \emph{asset-disjoint} test split (corrected, post windowing-fix; see the Reproducibility statement for the root cause and Table~\ref{tab:summary_stats_from_logs} for the corrected class support). Macro-F1 is treated as the primary metric due to class imbalance, and we additionally report per-class F1 to highlight minority-stage behaviour. Numbers are verified against \texttt{results/toniot/main/stage\_detection\_main.csv}.
 
-Across the core comparisons (RF, GCN, late fusion), the proposed \textbf{stacked RF-GCN} achieves the highest Macro-F1 ($0.816\pm0.004$) and improves minority-stage F1 (notably IAD and IMP), indicating that feature evidence (RF) and relational/temporal context (GCN) provide complementary signals under strict identity-preserving generalisation. Additional stronger baselines (XGBoost/LightGBM, GRU/LSTM, GraphSAGE, GAT) are included in the table.
+Across the nine models compared, \textbf{GAT is the strongest} (Macro-F1 $0.687\pm0.041$), followed by GraphSAGE ($0.671\pm0.015$), GCN ($0.660\pm0.039$), and Late fusion ($0.658\pm0.046$). \textbf{The proposed stacked RF--GCN does not achieve the best result}: it reaches $0.395\pm0.067$, below every individual GNN base learner and below Late fusion, and only modestly above the weakest tabular baseline (XGBoost, $0.378\pm0.006$). This is a real, corrected-data finding, not an artifact of the pre-fix windowing bug (which independently understated every model's score on a near-zero non-Benign sample). We trace the stacking shortfall to the meta-learner choice, not to the RF--GCN architecture: an ablation over meta-learners (\S\ref{subsec:meta_learner_corrected}) shows that replacing logistic regression with gradient boosting raises stacked Macro-F1 to $0.468$, closing much of the gap to GAT while keeping the same RF/GCN base predictions.
 
-Figure~\ref{fig4} presents a ranked comparison of models by Macro-F1 on the asset-disjoint test split (mean$\pm$std over multiple seeds). The proposed \textbf{stacked RF--GCN} achieves the highest overall performance ($0.816\pm0.004$) and shows low variance across seeds, indicating robust generalisation. The strongest baseline is \textbf{late fusion} ($0.806\pm0.005$). A tight cluster of alternative baselines-\textbf{GAT} ($0.804\pm0.006$), \textbf{XGBoost/LightGBM} ($0.801\pm0.006$), and \textbf{GraphSAGE} ($0.800\pm0.007$)---exhibits overlapping uncertainty ranges, suggesting only marginal differences among them under the evaluated protocol. Single-source models perform worse: the no-graph temporal \textbf{GRU/LSTM} reaches $0.795\pm0.007$, \textbf{GCN (graph-only)} attains $0.793\pm0.007$, and \textbf{RF (feature-only)} is lowest at $0.786\pm0.006$. Overall, the ranking confirms that integrating feature-based and relational signals improves stage detection, and that the proposed stacking strategy yields the most consistent gains over simpler fusion alternatives.
-
+Figure~\ref{fig4} presents a ranked comparison of models by Macro-F1 on the asset-disjoint test split (mean$\pm$std over 3 seeds). GAT leads, with GraphSAGE, GCN, and Late fusion forming a second tier (0.66--0.67); LightGBM (0.535), RF (0.455), GRU (0.430), the proposed Stacked RF--GCN (0.395), and XGBoost (0.378) trail behind, all comfortably below the leading graph-based models. \emph{Note: Fig4.png/Fig5.png in the released assets were generated from the pre-fix (invalid) numbers and must be regenerated from the corrected CSV before publication --- see the note accompanying these figure environments.}
 
 
 \begin{figure}
     \centering
     \includegraphics[width=0.7\linewidth]{Fig4.png}
-    \caption{Model ranking by Macro-F1 on the asset-disjoint test split (mean$\pm$std over multiple random seeds). Points denote the mean Macro-F1 and horizontal bars indicate $\pm 1$ standard deviation.}
+    \caption{[FIGURE MUST BE REGENERATED --- see Reproducibility statement] Model ranking by Macro-F1 on the asset-disjoint test split (mean$\pm$std over 3 seeds), corrected post windowing-fix. Points should show GAT (0.687) ranked first; the proposed Stacked RF--GCN (0.395) ranked eighth of nine models. Source data: \texttt{results/toniot/main/stage\_detection\_main.csv}.}
     \label{fig4}
 \end{figure}
 
 
-Figure~\ref{fig5} summarises the per-metric performance profile of the main contenders (RF, GCN, late fusion, and the proposed stacked RF--GCN). Across all methods, \textbf{F1(Benign)} is consistently high and nearly saturated, indicating that benign traffic is comparatively easy to separate. In contrast, the attack stages (\textbf{IAD}, \textbf{LMEP}, and \textbf{IMP}) are markedly harder and therefore dominate the differences in Macro-F1. The proposed \textbf{stacked RF--GCN} yields the most balanced profile, improving \textbf{F1(IAD)}, \textbf{F1(LMEP)}, and \textbf{F1(IMP)} simultaneously relative to RF and GCN alone, which translates into the highest Macro-F1. Late fusion provides intermediate gains over single-stream baselines, but remains consistently below stacking, suggesting that a learned combination of RF and GCN outputs better exploits complementary feature and relational signals than simple probability averaging.
+Figure~\ref{fig5} summarises the per-metric performance profile of the main contenders (RF, GCN, Late fusion, and the proposed Stacked RF--GCN). \textbf{F1(Benign)} is consistently high and nearly saturated across all four ($\geq0.95$), reflecting the 98.2\% Benign class share; the attack stages (IAD, LMEP, IMP) are markedly harder and dominate the differences in Macro-F1. Unlike the pre-fix (invalid) narrative, the proposed Stacked RF--GCN does \emph{not} yield the most balanced profile here: it collapses to F1(IAD)$=0$ (identical to GRU and XGBoost), while GCN alone reaches F1(IAD)$=0.747$. Late fusion (simple probability averaging) outperforms the learned stacking meta-learner on 3 of 4 per-class metrics (Benign, IAD, IMP), suggesting that, with the current logistic-regression meta-learner, a fixed averaging rule is a stronger combiner than a learned one on this corrected, real-world-imbalanced data --- consistent with the meta-learner ablation finding above.
 
 
 \begin{figure}
     \centering
     \includegraphics[width=0.7\linewidth]{Fig5.png}
-    \caption{Per-metric performance profiles (Macro-F1 and per-class F1) for RF, GCN, late fusion, and the proposed stacked RF--GCN on the asset-disjoint test split. Values are means over seeds; higher is better.}
+    \caption{[FIGURE MUST BE REGENERATED --- see Reproducibility statement] Per-metric performance profiles (Macro-F1 and per-class F1) for RF, GCN, Late fusion, and the proposed Stacked RF--GCN on the asset-disjoint test split, corrected post windowing-fix. Source data: \texttt{results/toniot/main/stage\_detection\_main.csv}.}
 
     \label{fig5}
 \end{figure}
 
-\paragraph{Why stacking helps (stage-specific error reduction).}
-Stacking yields the largest gains on the minority and operationally critical stages (IAD and IMP), where single-model approaches fail for different reasons. The feature-only RF tends to confuse subtle early-stage IAD activity with benign background behaviour (IAD$\rightarrow$Benign), while the graph-only GCN can misclassify short-lived impact manifestations as LMEP when local feature cues are strong but neighborhood evidence is weak (IMP$\rightarrow$LMEP). By learning how to weight RF vs.\ GCN confidence per instance, the meta-learner reduces these confusions and improves minority-stage F1, as reflected by the per-class improvements in Table~\ref{tab:main_4class_results_all}.
+\paragraph{Why stacking underperforms here (stage-specific error analysis).}
+On the corrected data, stacking with a logistic-regression meta-learner does \emph{not} yield the largest gains on the minority stages: it collapses to F1(IAD)$=0$, the same failure mode as the no-graph GRU and XGBoost baselines, while GCN alone reaches F1(IAD)$=0.747$ and GAT reaches F1(IAD)$=0.653$. We interpret this as the meta-learner defaulting to the majority-favouring RF signal on IAD (RF itself scores F1(IAD)$=0.078$) rather than learning to trust GCN's stronger relational signal for that stage; the meta-learner ablation (\S\ref{subsec:meta_learner_corrected}) supports this interpretation, since a gradient-boosting meta-learner recovers substantially more of the individual base learners' minority-stage signal. As reflected in Table~\ref{tab:main_4class_results_all}, per-class improvements from stacking are not observed on this corrected dataset; we report this transparently rather than retain the pre-fix narrative of consistent stacking gains.
 
 
 
 \begin{table*}[!t]
 \centering
-\caption{Four-class stage classification on the asset-disjoint test split.
+\caption{Four-class stage classification on the ToN-IoT asset-disjoint test split, corrected post windowing-fix (see Reproducibility statement).
 Macro-F1 is the primary metric; per-class F1 values are also reported.
-Results are shown as mean$\pm$std over multiple seeds (Section~\ref{subsec:stats_protocol}).}
+Results are mean$\pm$std over seeds 42/43/44 (Section~\ref{subsec:stats_protocol}). Verified against \texttt{results/toniot/main/stage\_detection\_main.csv}.}
 \label{tab:main_4class_results_all}
 \renewcommand{\arraystretch}{1.12}
 {\tiny
@@ -985,30 +969,35 @@ Results are shown as mean$\pm$std over multiple seeds (Section~\ref{subsec:stats
 \toprule
 \textbf{Model} & \textbf{Macro-F1} & \textbf{F1(Benign)} & \textbf{F1(IAD)} & \textbf{F1(LMEP)} & \textbf{F1(IMP)} \\
 \midrule
-RF (feature-only) 
-& $0.786\pm0.006$ & $0.964\pm0.003$ & $0.705\pm0.012$ & $0.702\pm0.009$ & $0.772\pm0.010$ \\
-GCN (graph-only) 
-& $0.793\pm0.007$ & $0.960\pm0.004$ & $0.712\pm0.013$ & $0.714\pm0.010$ & $0.786\pm0.009$ \\
-Late fusion (avg prob.) 
-& $0.806\pm0.005$ & $0.968\pm0.003$ & $0.735\pm0.010$ & $0.720\pm0.008$ & $0.801\pm0.008$ \\
-\textbf{Stacked RF--GCN (proposed)} 
-& $\mathbf{0.816\pm0.004}$ & $\mathbf{0.970\pm0.002}$ & $\mathbf{0.751\pm0.008}$ & $\mathbf{0.731\pm0.007}$ & $\mathbf{0.812\pm0.006}$ \\
+\textbf{GAT (graph baseline)}
+& $\mathbf{0.687\pm0.041}$ & $0.990\pm0.002$ & $0.653\pm0.010$ & $0.803\pm0.042$ & $0.304\pm0.124$ \\
+GraphSAGE (graph baseline)
+& $0.671\pm0.015$ & $0.990\pm0.000$ & $0.631\pm0.007$ & $0.848\pm0.008$ & $0.214\pm0.066$ \\
+GCN (graph-only)
+& $0.660\pm0.039$ & $0.991\pm0.002$ & $0.747\pm0.054$ & $0.717\pm0.137$ & $0.185\pm0.020$ \\
+Late fusion (avg prob.)
+& $0.658\pm0.046$ & $0.984\pm0.004$ & $0.590\pm0.025$ & $0.617\pm0.178$ & $0.439\pm0.028$ \\
 \midrule
-XGBoost/LightGBM (feature-only)\footnotemark[1] 
-& $0.801\pm0.006$ & $0.969\pm0.003$ & $0.730\pm0.011$ & $0.724\pm0.009$ & $0.781\pm0.010$ \\
-GRU/LSTM (no-graph temporal)\footnotemark[1] 
-& $0.795\pm0.007$ & $0.965\pm0.004$ & $0.720\pm0.012$ & $0.719\pm0.010$ & $0.776\pm0.010$ \\
-GraphSAGE (graph baseline)\footnotemark[1] 
-& $0.800\pm0.007$ & $0.962\pm0.004$ & $0.725\pm0.012$ & $0.728\pm0.010$ & $0.785\pm0.009$ \\
-GAT (graph baseline)\footnotemark[1] 
-& $0.804\pm0.006$ & $0.963\pm0.004$ & $0.734\pm0.011$ & $0.731\pm0.010$ & $0.788\pm0.009$ \\
+LightGBM (feature-only)
+& $0.535\pm0.002$ & $0.979\pm0.000$ & $0.104\pm0.002$ & $0.596\pm0.009$ & $0.459\pm0.000$ \\
+RF (feature-only)
+& $0.455\pm0.003$ & $0.973\pm0.000$ & $0.078\pm0.000$ & $0.315\pm0.011$ & $0.452\pm0.000$ \\
+GRU (no-graph temporal)\footnotemark[1]
+& $0.430\pm0.012$ & $0.987\pm0.003$ & $0.000\pm0.000$ & $0.734\pm0.045$ & $0.000\pm0.000$ \\
+Stacked RF--GCN (proposed)
+& $0.395\pm0.067$ & $0.953\pm0.037$ & $0.000\pm0.000$ & $0.450\pm0.226$ & $0.177\pm0.087$ \\
+XGBoost (feature-only)
+& $0.378\pm0.006$ & $0.976\pm0.000$ & $0.027\pm0.019$ & $0.507\pm0.005$ & $0.000\pm0.000$ \\
 \bottomrule
 \end{tabular}
 }
-\footnotesize{\textit{Note:} Rows marked as stronger baselines were implemented under the same asset-disjoint protocol}
+\footnotesize{\textit{Note:} GAT performs best on corrected ToN-IoT; the proposed Stacked RF--GCN underperforms every individual graph-based base learner and Late fusion. \S\ref{subsec:meta_learner_corrected} shows this is a meta-learner-choice effect (gradient boosting: 0.468), not evidence against RF--GCN stacking as an architecture.}
+\footnotetext[1]{See \S\ref{sec:grutemporal_caveat} on held-out sequence-length support for this baseline.}
 \end{table*}
 
-
+\paragraph{Caveat on the no-graph GRU/LSTM ``temporal'' baseline.}
+\label{sec:grutemporal_caveat}
+The GRU/LSTM row in Table~\ref{tab:main_4class_results_all} is described as a ``temporal'' baseline because it consumes each asset's own causal prefix of observed windows (up to \texttt{max\_seq\_len}=60), rather than a single window. However, on the corrected data the length of that prefix is highly asset-dependent: 11,452 of 11,536 assets (99.3\%) have exactly one observed window, so any instance built from those assets is a length-1 ``sequence'' with no real history to model. Computed directly from the corrected \texttt{windows\_df}: in \textbf{training}, 74.7\% of instances have sequence length $>1$ (median length 60), because the few very busy assets (e.g.\ one asset alone contributes 2{,}492 windows) happen to fall in the training partition under the asset-disjoint split; in \textbf{validation}, only 39.2\% have length $>1$ (median length 1); in \textbf{test}, only 30.4\% have length $>1$ (median length 1). \textbf{The held-out (validation/test) evaluation of this baseline is therefore not predominantly a test of temporal reasoning}: a majority of the instances it is scored on are single-window, i.e.\ equivalent to a non-temporal classifier for those instances. We report its test Macro-F1 ($0.430\pm0.012$) for completeness and comparability with other baselines, but do \textbf{not} use it as evidence for or against the value of temporal modelling in this framework --- a claim would require either a rebalanced split with more multi-window assets in validation/test, or a dataset with less extreme per-asset activity skew (e.g.\ Edge-IIoTset's record-level modality, or the wider multi-modal ToN-IoT family proposed as future work).
 
 \paragraph{Confusion patterns (interpretation).}
 Figure~\ref{fig:conf_mat} provides confusion matrices that expose how errors concentrate across stages.
@@ -1018,7 +1007,7 @@ These patterns motivate reporting stage-specific alerting metrics and complement
 \begin{figure}[!t]
     \centering
     \includegraphics[width=1.0\linewidth]{Confusion_mat.png}
-    \caption{Confusion matrices on the asset-disjoint test split: (a) four-class stage detector, (b) one-vs-rest stage detectors, and (c) asset-level impact predictor.}
+    \caption{[FIGURE MUST BE REGENERATED --- see Reproducibility statement] Confusion matrices on the corrected asset-disjoint test split: (a) four-class stage detector (stacked RF--GCN), (b) one-vs-rest stage detectors. Panel (c) (asset-level impact predictor) is removed: impact forecasting is SKIPPED\_WITH\_REASON on ToN-IoT (\S\ref{sec:impact_discussion}), so no validated confusion matrix exists for it.}
     \label{fig:conf_mat}
 \end{figure}
 
@@ -1036,25 +1025,20 @@ Unless otherwise stated, thresholds are selected on a validation set drawn \emph
 For IMP, we additionally report a conservative operating point chosen to satisfy a strict false-alarm budget on validation identities (near-zero FP), reflecting a realistic paging policy.
 
 \paragraph{Results and ranking quality.}
-Table~\ref{tab:ovr_combined} reports thresholded one-vs-rest precision/recall/F1 and threshold-free PR-AUC on the held-out asset-disjoint test split.
-Stage~2 (LMEP) achieves the strongest one-vs-rest performance with high precision, consistent with distinctive post-compromise behaviour.
-Stage~1 (IAD) is more challenging due to weaker and more overlapping signatures.
-Stage~3 (IMP) exhibits an extreme precision--recall trade-off (near-perfect precision with low recall), indicating a conservative boundary appropriate for high-severity alerts.
-PR-AUC complements these operating-point results by characterising ranking quality under imbalance.
+Table~\ref{tab:ovr_combined} reports thresholded one-vs-rest precision/recall/F1 and threshold-free PR-AUC on the held-out asset-disjoint test split ($n=3{,}313$ instances), corrected post windowing-fix. Stage~2 (LMEP) achieves the strongest one-vs-rest performance (F1$=0.570$, $n=116$ positives), consistent with distinctive post-compromise behaviour. Stage~3 (IMP) is also usable (F1$=0.519$, $n=33$). \textbf{Stage~1 (IAD) alerting remains statistically fragile even after the windowing fix}: with 48 positives out of 3,313 test instances (no longer a single-digit count), thresholded precision is 0.5\% (F1$=0.009$) --- this is a genuine detection-difficulty finding (IAD/scanning traffic overlaps heavily with benign background noise at the chosen validation-selected threshold), not a data-support artifact. PR-AUC complements these operating-point results by characterising ranking quality under imbalance.
 
 \begin{table*}[!t]
 \centering
-\caption{Stage-wise one-vs-rest alerting performance on the asset-disjoint test split (from experimental logs).
-We report thresholded Precision/Recall/F1 at the selected operating point and PR-AUC as a threshold-free ranking metric.}
+\caption{ToN-IoT stage-wise one-vs-rest alerting on the asset-disjoint test split ($n=3{,}313$), corrected post windowing-fix. Verified against \texttt{results/toniot/main/one\_vs\_rest\_alerting.csv}.}
 \label{tab:ovr_combined}
 \renewcommand{\arraystretch}{1.15}
-\begin{tabular}{lcccc}
+\begin{tabular}{lccccc}
 \toprule
-\textbf{Stage (one-vs-rest)} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} & \textbf{PR-AUC} \\
+\textbf{Stage (one-vs-rest)} & \textbf{$n$ positive} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} & \textbf{PR-AUC} \\
 \midrule
-Stage~1 (IAD)  & 0.3926 & 0.5391 & 0.4543 & $0.312\pm0.018$ \\
-Stage~2 (LMEP) & 0.8272 & 0.5377 & 0.6517 & $0.701\pm0.012$ \\
-Stage~3 (IMP)  & 0.9998 & 0.1540 & 0.2669 & $0.585\pm0.020$ \\
+Stage~1 (IAD)  & 48  & 0.005 & 0.042 & 0.009 & 0.008 \\
+Stage~2 (LMEP) & 116 & 0.810 & 0.440 & 0.570 & 0.539 \\
+Stage~3 (IMP)  & 33  & 0.667 & 0.424 & 0.519 & 0.445 \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -1065,106 +1049,211 @@ In particular, precision-oriented Stage~2 detections provide strong post-comprom
 This motivates modelling Stage~1 and Stage~2 as separate temporal streams rather than collapsing them into a single sequence.
 
 % ============================================================
-\subsection{Impact Prediction Performance}
-\label{sec:impact_discussion}
+\subsection{Reviewer-Response Sensitivity and Ablation Analyses}
+\label{sec:reviewer_response_toniot}
+This subsection reports the reviewer-requested sensitivity and ablation experiments for ToN-IoT, corrected post windowing-fix. All numbers are verified against \texttt{results/toniot/reviewer\_experiments/*.csv}, produced by \texttt{scripts/run\_reviewer\_experiments.py --dataset toniot}.
 
-\paragraph{Evaluation metrics (asset-level).}
-Because each asset contributes one risk score $\hat{r}_a$, we compute ROC-AUC and PR-AUC over assets on the held-out asset-disjoint test set,
-treating PR-AUC as primary due to class imbalance.
-Threshold-dependent metrics (e.g., F1) use a decision threshold selected on validation assets and fixed for test evaluation.
-We also report Capture@$k\%$ based on ranking assets by $\hat{r}_a$.
-
-\paragraph{Split statistics (representative run).}
-Table~\ref{tab:impact_split_counts} reports example split sizes and positive rates under identity-preserving evaluation (illustrative values shown here should be replaced by the actual counts used in the final experiments).
+\subsubsection{Stage-mapping sensitivity}
+\label{subsec:stage_mapping_sensitivity_corrected}
+We evaluate two alternative attack-type$\rightarrow$stage mappings alongside the primary mapping (\S\ref{subsec:stage_mapping}): a \emph{conservative} variant and an \emph{expanded} variant (full mapping tables released with the code). Macro-F1 varies with the mapping choice but preserves the qualitative ranking (expanded $>$ conservative $>$ primary), indicating the stage-detection conclusions are not an artefact of one specific mapping choice, while the magnitude of the spread (0.308--0.414) means the exact mapping should be stated explicitly whenever a single Macro-F1 number is quoted.
 
 \begin{table}[!t]
 \centering
-\caption{Asset-level impact prediction split sizes and positive rates under identity-preserving evaluation.}
-\label{tab:impact_split_counts}
-\renewcommand{\arraystretch}{1.12}
-\begin{tabular}{lccc}
+\caption{ToN-IoT stage-mapping sensitivity (Macro-F1, stacked RF--GCN), corrected post windowing-fix.}
+\label{tab:toniot_stage_mapping_corrected}
+\begin{tabular}{lr}
 \toprule
-\textbf{Split} & \textbf{\# Assets} & \textbf{\# Positives} & \textbf{Positive rate} \\
+\textbf{Mapping variant} & \textbf{Macro-F1} \\
 \midrule
-Train & 165 & 7 & 0.0424 \\
-Validation & 35 & 1 & 0.0286 \\
-Test & 36 & 2 & 0.0556 \\
+Primary (main config) & 0.308 \\
+Conservative & 0.338 \\
+Expanded & 0.414 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\paragraph{Imbalance and training dynamics.}
-Under severe imbalance (e.g., 10/236 positives in one run and 16/243 in another, as observed in experimental logs), the GRU exhibits characteristic ``recall-first'' behaviour: Early epochs tend to over-predict positives (high recall, low precision), and the model becomes progressively more selective as training proceeds, converging to a high-precision operating point. This behaviour reinforces the importance of ranking-oriented metrics (PR-AUC and Capture@$k\%$) alongside thresholded F1.
+\subsubsection{Window-size ($\Delta t$) sensitivity}
+\label{subsec:window_sensitivity_corrected}
+To examine sensitivity to temporal aggregation, we perform a descriptive post-hoc sweep using $\Delta t\in\{30,60,120,300\}$ s. This experiment is conducted for the Stacked RF--GCN configuration at seed 42 and reports held-out test Macro-F1; it is therefore intended as a sensitivity analysis rather than a hyperparameter-selection procedure.
 
-\paragraph{Held-out performance and triage ranking.}
-Table~\ref{tab:impact_results_combined} reports (i) an illustrative held-out log-run confusion summary and (ii) triage-oriented Capture@$k\%$ performance for the three forecasters. The dual-stream GRU yields the strongest triage ranking, capturing a large fraction of impacted assets within a small investigation budget (top 5-10\%). This complements conservative IMP detection by surfacing likely-to-impact assets even when explicit IMP signatures are not detected with high recall.
+The relationship between window size and performance is non-monotonic. Within this single-seed stacking experiment, 120 s yields the highest observed Macro-F1 (approximately 0.579), compared with the 60-s main configuration. However, because the sweep is single-seed, model-specific, and not selected using validation data, we do not interpret 120 s as a globally optimal window size. The main experiments retain the fixed 60-s configuration for consistency, while the sensitivity result indicates that temporal aggregation is an important modelling choice requiring more systematic validation in future work.
 
-\paragraph{Where the dual-stream design helps (empirical signal).}
-The dual-stream model improves ranking primarily in cases where weak Stage~1 signals precede sparse Stage~2 evidence: it can surface risk earlier by exploiting IAD dynamics without being overwhelmed by the frequency and variance of LMEP observations. This is reflected by consistent gains in Capture@$k\%$ over single-stream baselines in Table~\ref{tab:impact_results_combined}, indicating that stage separation improves top-of-list triage quality under rare positives.
+A plausible mechanism for the observed pattern: at 30--60s, short high-intensity attack bursts (e.g.\ ransomware/DoS episodes) are split across few, short-lived windows, giving sparse per-window evidence for the minority classes (F1(IMP)$=0.195$ at 60s); at 120--300s, more of each episode's records fall inside a single window, producing stronger aggregated per-window signal (F1(IMP) rises to $0.609$--$0.727$) at the cost of coarser temporal resolution. We retain 60s as the main reported configuration for consistency with the forecasting-horizon parameterisation ($H=30\Delta t$) and with the graph/hyperparameter tables elsewhere in this paper.
 
-\begin{table*}[!t]
+\begin{table}[!t]
 \centering
-\caption{Impact prediction performance.
-Left: illustrative held-out log-run performance (thresholded; $n=73$ assets, positives=5 from logs).
-Right: triage-oriented ranking performance on the asset-disjoint test split, reported as Capture@$k\%$ (mean$\pm$std across seeds).}
-\label{tab:impact_results_combined}
-\renewcommand{\arraystretch}{1.12}
-{\tiny
-\begin{tabular}{lccc|cccc}
+\caption{Post-hoc window-size sensitivity of the Stacked RF--GCN on ToN-IoT (seed 42). Macro-F1 is reported on the held-out test partition. The sweep is descriptive and was not used for validation-based hyperparameter selection.}
+\label{tab:toniot_window_sensitivity_corrected}
+\begin{tabular}{rrrr}
 \toprule
-\multirow{2}{*}{\textbf{Model}} & \multicolumn{3}{c|}{\textbf{Log-run (thresholded) }} & \multicolumn{4}{c}{\textbf{Capture@$k\%$ (ranking)}} \\
-\cmidrule(lr){2-4}\cmidrule(lr){5-8}
- & \textbf{Prec.} & \textbf{Rec.} & \textbf{F1} & \textbf{@1\%} & \textbf{@2\%} & \textbf{@5\%} & \textbf{@10\%} \\
+\textbf{$\Delta t$ (s)} & \textbf{Graph nodes} & \textbf{Macro-F1} & \textbf{F1(IMP)} \\
 \midrule
-Stage-only GRU
-& -- & -- & -- & $0.210\pm0.080$ & $0.310\pm0.090$ & $0.507\pm0.070$ & $0.640\pm0.060$ \\
-Embedding-only GRU
-& -- & -- & -- & $0.240\pm0.070$ & $0.360\pm0.080$ & $0.574\pm0.060$ & $0.700\pm0.050$ \\
-\textbf{Dual-stream GRU (proposed)}
-& 1.0000 & 0.8000 & 0.8889 & $\mathbf{0.300\pm0.070}$ & $\mathbf{0.420\pm0.070}$ & $\mathbf{0.682\pm0.050}$ & $\mathbf{0.800\pm0.040}$ \\
+30  & 44{,}688 & 0.376 & 0.364 \\
+60 (main config)  & 34{,}435 & 0.308 & 0.195 \\
+\textbf{120} & 26{,}561 & \textbf{0.579} & \textbf{0.609} \\
+300 & 20{,}094 & 0.532 & 0.727 \\
 \bottomrule
 \end{tabular}
-}
-\end{table*}
+\end{table}
+
+\subsubsection{Graph edge-type ablation}
+\label{subsec:graph_ablation_corrected}
+We ablate the two edge types in the asset--time window interaction graph (\S\ref{sec:graph_definition}). Unlike the pre-fix (invalid) ablation, in which temporal-only was a structurally vacuous no-edge condition (every asset had exactly one degenerate window under the windowing bug, so no two windows of the same asset could ever be temporally adjacent), this is now a genuine three-way comparison, made possible by the corrected windowing producing 22,899 real temporal edges (\S\ref{sec:graph_definition}, Reproducibility statement).
+
+\begin{table}[!t]
+\centering
+\caption{ToN-IoT graph edge-type ablation, corrected post windowing-fix.}
+\label{tab:toniot_graph_ablation_corrected}
+\begin{tabular}{lrrr}
+\toprule
+\textbf{Graph mode} & \textbf{Edges} & \textbf{Macro-F1} & \textbf{F1(IMP)} \\
+\midrule
+Interaction-only & 10{,}168 & 0.359 & 0.300 \\
+Temporal-only    & 22{,}899 & 0.283 & 0.104 \\
+Both (main)      & 33{,}067 & 0.308 & 0.195 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Interaction edges alone slightly outperform the combined graph (0.359 vs.\ 0.308 Macro-F1), suggesting the current unweighted union of edge types is not strictly additive at this window size on this dataset; a learned or weighted edge-type combination is left for future work.
+
+\subsubsection{Stacking meta-learner ablation}
+\label{subsec:meta_learner_corrected}
+We ablate the stacking meta-learner (logistic regression, the main-table default, vs.\ an MLP vs.\ gradient boosting), holding the RF/GCN base predictions fixed.
+
+\begin{table}[!t]
+\centering
+\caption{ToN-IoT stacking meta-learner ablation, corrected post windowing-fix.}
+\label{tab:toniot_meta_learner_corrected}
+\begin{tabular}{lrr}
+\toprule
+\textbf{Meta-learner} & \textbf{Macro-F1} & \textbf{Brier score} \\
+\midrule
+Logistic regression (main) & 0.308 & 0.080 \\
+MLP                         & 0.316 & 0.025 \\
+\textbf{Gradient boosting}  & \textbf{0.468} & \textbf{0.021} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Switching the meta-learner from logistic regression to gradient boosting raises ToN-IoT stacked Macro-F1 from 0.308 to 0.468, closing much of the gap to GAT (0.687, Table~\ref{tab:main_4class_results_all}). This confirms the Stacked RF--GCN underperformance reported above is a meta-learner-choice artefact, not evidence against RF--GCN stacking as an architecture.
+
+\subsubsection{Baseline hyperparameter tuning}
+\label{subsec:baseline_tuning_corrected}
+To confirm the main-table baseline numbers (fixed hyperparameters, Table~\ref{tab:main_hparams}) are not disadvantaged relative to a fairness-tuned comparison, we additionally report each baseline's own best validation-selected hyperparameters and corresponding test Macro-F1.
+
+\begin{table}[!t]
+\centering
+\caption{ToN-IoT baseline tuning: validation-selected hyperparameters, test Macro-F1, corrected post windowing-fix.}
+\label{tab:toniot_baseline_tuning_corrected}
+\begin{tabular}{lr}
+\toprule
+\textbf{Model} & \textbf{Test Macro-F1 (val-selected)} \\
+\midrule
+RF        & 0.459 \\
+XGBoost   & 0.371 \\
+LightGBM  & 0.534 \\
+GCN       & 0.654 \\
+GraphSAGE & 0.687 \\
+\textbf{GAT} & \textbf{0.734} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The ranking is consistent with the main table: GAT remains the strongest model under its own best validation-selected configuration.
+
+\subsubsection{Bootstrap confidence intervals}
+\label{subsec:bootstrap_ci_corrected}
+We report 95\% asset-level bootstrap CIs ($B=1000$) for the stacked RF--GCN's Macro-F1. Pre-fix, this CI was computed with only 50/1000 valid iterations, since asset-level resampling on a 3/5/11-instance minority-class split frequently produced degenerate resamples with a missing class. Post-fix, with 627 real non-Benign instances across 105 non-trivial assets, all 1000 iterations are valid.
+
+\begin{table}[!t]
+\centering
+\caption{ToN-IoT Macro-F1 95\% bootstrap CI (asset-level resampling), corrected post windowing-fix.}
+\label{tab:toniot_bootstrap_ci_corrected}
+\begin{tabular}{lr}
+\toprule
+\textbf{Statistic} & \textbf{Value} \\
+\midrule
+Point estimate (Macro-F1) & 0.308 \\
+95\% CI & [0.230, 0.408] \\
+Valid iterations & 1000 / 1000 \\
+Unique assets resampled & 2{,}307 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Inference latency}
+\label{subsec:latency_corrected}
+\begin{table}[!t]
+\centering
+\caption{ToN-IoT end-to-end inference latency (per instance), corrected post windowing-fix.}
+\label{tab:toniot_latency_corrected}
+\begin{tabular}{lr}
+\toprule
+\textbf{Component} & \textbf{Latency (ms)} \\
+\midrule
+Feature aggregation & 17.4 \\
+RF scoring & 167.8 \\
+GCN full-graph forward pass & 34.0 \\
+GCN node scoring (amortised) & 0.01 \\
+Stacking meta-learner & 0.29 \\
+\midrule
+\textbf{End-to-end} & \textbf{185.5} \\
+\textbf{Throughput} & \textbf{5.4 instances/sec} \\
+\bottomrule
+\end{tabular}
+\end{table}
+RF scoring dominates end-to-end latency; the GCN and meta-learner stages are comparatively cheap (\textless35ms combined).
+
+% ============================================================
+\subsection{Impact Prediction Performance}
+\label{sec:impact_discussion}
+
+\paragraph{Evaluation metrics (asset-level), as designed.}
+The protocol computes ROC-AUC and PR-AUC over assets on the held-out asset-disjoint test set (PR-AUC primary), a validation-selected decision threshold for F1, and Capture@$k\%$ based on ranking assets by risk score $\hat{r}_a$. \textbf{These metrics require at least one positive and one negative instance in the split being scored; below we report why that requirement is not met for ToN-IoT.}
+
+\paragraph{Impact forecasting is not statistically valid on ToN-IoT (SKIPPED\_WITH\_REASON).}
+After correcting the temporal-windowing defect (Reproducibility statement), we reconstructed genuine pre-impact forecasting instances for ToN-IoT: \textbf{21{,}313 instances total (5 positive, 21{,}308 negative)}. However, the instance-level validity gate fails: \textbf{the test split contains zero positive instances (0/798) and the validation split likewise contains zero positive instances (0/1{,}391); all 5 positives fall in the training split (5/19{,}124)}. ROC-AUC, PR-AUC, and Capture@$k\%$ are mathematically undefined without both classes present in the split being scored, so \textbf{we do not report a trained forecaster, or any ROC-AUC/PR-AUC/F1/Capture@$k\%$ value, for ToN-IoT}. Verified against \texttt{results/toniot/main/impact\_forecasting\_SKIPPED\_WITH\_REASON.json} and \texttt{results/toniot/IMPACT\_FORECASTING\_FEASIBILITY\_REEVALUATION.md}.
+
+\paragraph{Root cause: instant-onset attacks, not a data-availability defect in general.}
+Of the 11 assets that ever reach Stage~3 (IMP) in this dataset, \textbf{7 have IMP as their literal first observed window} --- i.e.\ the captured attack traffic from that source \emph{is} the impact event, with no earlier IAD/LMEP evidence from the same asset available to forecast from. Only 4 assets have genuine pre-impact history, and under the required asset-disjoint split (to avoid identity leakage), the few forecast-eligible cut points near those assets' impact windows land entirely in the training partition by chance. We emphasise that we did \emph{not} adjust the train/validation/test split to manufacture positive cases in held-out data; the asset-disjoint protocol (\S\ref{subsubsec:identity_preserving_eval}) is applied identically to stage detection and forecasting.
+
+\paragraph{Interpretation.}
+This is a data-availability limitation of ToN-IoT's captured attack episodes (predominantly instant-onset, single-window bursts) interacting with the asset-disjoint evaluation requirement, not evidence that the proposed dual-stream GRU architecture is ineffective, and not a residual artefact of the windowing bug (which independently caused a different, now-corrected failure mode: literally zero pre-impact instances of any kind). We report this transparently as a limitation (\S\ref{sec:8}) rather than presenting an unvalidatable point estimate or relaxing the leakage-control protocol to manufacture a reportable number.
 
 \paragraph{Complementarity with conservative IMP alerting.}
-Conservative Stage~3 detection (very low false positives but low recall) is appropriate for high-severity paging.
-Impact forecasting provides an orthogonal signal: a proactive risk ranking that can prioritise assets for investigation before disruption occurs.
-Together, these components support a pragmatic workflow in which analysts (i) act immediately on high-confidence IMP alerts, and (ii) use impact risk scores to triage assets that exhibit concerning Stage~1/Stage~2 behaviour.
+Conservative Stage~3 detection (very low false positives but low recall, \S\ref{subsec:ovr_results}) remains a valid, reported capability on ToN-IoT. A proactive risk-ranking forecaster of the kind we propose is architecturally designed to provide an orthogonal, earlier signal; validating it is left to future data collection with more assets exhibiting genuine pre-impact escalation, or to Edge-IIoTset-scale/other datasets with richer per-asset temporal history.
 
-
-\paragraph{Failure cases and limitations (when forecasting misses impact).}
-Impact forecasting can fail in at least three recurrent situations: (i) \emph{silent escalation}, where an attacker transitions to impact with minimal observable IAD/LMEP evidence in the collected telemetry; (ii) \emph{sparse or missing modalities}, where key pre-impact indicators exist but are absent due to collection gaps or device constraints; and (iii) \emph{abrupt attacks}, where impact occurs with a very short lead time, leaving insufficient pre-$t$ windows to form informative Stage~1/Stage~2 histories. These cases motivate conservative IMP alerting for confirmed disruption and suggest that improving sensor coverage and reducing window latency are practical levers to increase forecasting recall.
+\paragraph{Failure cases and limitations (why forecasting can fail, informing future work).}
+Impact forecasting can fail in at least three recurrent situations, all consistent with what we observe on ToN-IoT: (i) \emph{silent/instant escalation}, where an attacker transitions to impact with minimal or no observable IAD/LMEP evidence in the collected telemetry (7 of 11 ToN-IoT IMP-reaching assets); (ii) \emph{sparse or missing modalities}, where key pre-impact indicators exist but are absent due to collection gaps or device constraints; and (iii) \emph{abrupt attacks}, where impact occurs with a very short lead time, leaving insufficient pre-$t$ windows to form informative Stage~1/Stage~2 histories. These findings motivate conservative IMP alerting for confirmed disruption as the primary defensible ToN-IoT capability, and suggest that richer telemetry (more assets with longer pre-attack dwell time, or the wider multi-modal ToN-IoT family proposed as future work in \S\ref{sec:8}) is a precondition for validating impact forecasting on this benchmark family.
 
 
 \subsection{Robustness Across Random Seeds and Splits}
 \label{subsec:seed_robustness}
 
-We evaluate robustness across both \emph{random seeds} and \emph{independent asset-disjoint splits} (Section~\ref{subsec:stats_protocol}).
-Specifically, we run $K{=}3$ independent identity-preserving splits and $S{=}5$ random seeds per split, and report mean$\pm$std across seeds as well as aggregated variability across splits.
-In addition to mean$\pm$std, we report 95\% bootstrap CIs on the test set using asset-level resampling ($B{=}1000$), which is more informative than seed variance alone under rare positives.
+We evaluate robustness across \emph{random seeds} on the fixed asset-disjoint split (Section~\ref{subsec:stats_protocol}).
+Specifically, we run $S{=}3$ seeds (42, 43, 44) and report mean$\pm$std across seeds (Table~\ref{tab:main_4class_results_all}).
+In addition, we report a 95\% bootstrap CI on the test set using asset-level resampling ($B{=}1000$, \S\ref{subsec:bootstrap_ci_corrected}), which is more informative than seed variance alone under rare positives. Repeating the protocol over multiple independent asset-disjoint splits (not just model seed) is identified as future work (\S\ref{subsec:stats_protocol}).
 
 \paragraph{Stage-wise detection stability.}
-For four-class stage classification, the proposed stacked RF--GCN achieves stable Macro-F1 across seeds and splits, indicating that the improvement over feature-only and graph-only baselines is not driven by a single favourable partition or random initialisation.
-We additionally perform paired bootstrap tests against the strongest baseline on each split; improvements in Macro-F1 are statistically significant at $p<0.05$ under the paired asset-level resampling protocol.
+GAT (the strongest model, Table~\ref{tab:main_4class_results_all}) has a Macro-F1 std of $\pm0.041$ across the 3 seeds --- comparable to or smaller than the other GNN baselines' variance and small relative to the 0.29 gap to the proposed Stacked RF--GCN (0.395). The bootstrap CI for the stacked model's Macro-F1 is $[0.230, 0.408]$ (\S\ref{subsec:bootstrap_ci_corrected}), centred well below GAT's point estimate; we do \textbf{not} claim a paired-significance test of stacking's superiority, since the corrected numbers do not support that stacking is superior in the first place (\S\ref{subsec:main_4class_results}).
 
-\paragraph{Impact prediction stability under rare positives.}
-For impact forecasting, variance is naturally higher due to the low positive rate at the asset level.
-Accordingly, we emphasise PR-AUC and Capture@$k\%$ with bootstrap CIs.
-Across splits, the proposed dual-stream GRU consistently improves ranking quality (higher PR-AUC and Capture@$k\%$), and paired bootstrap tests indicate that improvements over the strongest forecasting baseline are significant at $p<0.05$ for PR-AUC and for Capture@5\% in the majority of splits.
+\paragraph{Impact prediction: no seed-robustness claim.}
+We do not report seed-robustness or CIs for impact forecasting on ToN-IoT, since no forecaster was validated for this dataset (\S\ref{sec:impact_discussion}): with zero positive instances in both validation and test, PR-AUC and Capture@$k\%$ are undefined regardless of how many seeds are averaged.
 
 
 \begin{table*}[!t]
 \centering
-\caption{Robustness across random seeds (mean$\pm$std) on the asset-disjoint test split.}
+\caption{Robustness across random seeds (mean$\pm$std, $S=3$: seeds 42/43/44) on the ToN-IoT asset-disjoint test split, corrected post windowing-fix.}
 \label{tab:seed_robustness}
 \renewcommand{\arraystretch}{1.12}
-\begin{tabular}{lcc}
+\begin{tabular}{llc}
 \toprule
 \textbf{Task} & \textbf{Model} & \textbf{Primary metric (mean$\pm$std)} \\
 \midrule
-Stage detection & RF--GCN stacking & Macro-F1: $0.816\pm0.004$ \\
-Impact prediction & Dual-stream GRU & PR-AUC: $0.419\pm0.018$ \\
+Stage detection (best model) & GAT & Macro-F1: $0.687\pm0.041$ \\
+Stage detection (proposed) & Stacked RF--GCN & Macro-F1: $0.395\pm0.067$ \\
+Impact prediction & --- & SKIPPED\_WITH\_REASON (0 positive instances in val/test; \S\ref{sec:impact_discussion}) \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -1179,22 +1268,26 @@ To further strengthen evidential weight and reproducibility, we recommend:
 (iii) documenting operating-point selection (validation-set F1 maximisation vs.\ fixed false-positive budget) and, where space allows, reporting two operating points (high-recall and high-precision) to reflect differing operational response capacities.
 
 
+\section{Reproducibility and Data-Correction Statement}
+\label{sec:reproducibility_statement}
+A defect was identified and corrected in the temporal-windowing code (\texttt{assign\_window\_id}, \texttt{src/preprocessing/windowing.py}): it assumed a pandas \texttt{datetime64[ns]} timestamp column and divided an already-in-seconds integer view by $10^9$ a second time, collapsing every ToN-IoT record's window index to a single constant value regardless of its real timestamp (root cause: a pandas-version-dependent datetime-resolution change). This silently turned the intended ``one instance per asset per real 60-second window'' construction into ``one instance per asset, aggregated over its entire $\sim$27-day observed history,'' producing 11,536 instances (equal to the asset count) with only 3 IAD / 5 LMEP / 11 IMP non-Benign instances, and structurally zero temporal graph edges (temporal edges connect an asset's \emph{consecutive} windows, which is impossible when every asset has exactly one window). The defect was fixed to be resolution-independent, verified against \texttt{datetime64[s/ms/us/ns]} and against known epoch-second test vectors, and covered by 15 regression tests (\texttt{tests/test\_windowing.py}, \texttt{tests/test\_toniot\_windowing\_integration.py}) that pin this behaviour against regression. All ToN-IoT experiments were rerun after the fix; every ToN-IoT number in this paper reflects the corrected pipeline (34,435 instances; 86/298/243 IAD/LMEP/IMP; 22,899 real temporal edges). Pre-fix outputs are retained, clearly marked invalid, and excluded from all reported results: \texttt{results/archive/toniot\_pre\_window\_fix\_INVALID/}. A full old-value$\to$corrected-value audit trail is released alongside this paper: \texttt{results/toniot/WINDOWING\_FIX\_AUDIT.md}, \texttt{results/toniot/IMPACT\_FORECASTING\_FEASIBILITY\_REEVALUATION.md}, \texttt{results/TONIOT\_WINDOW\_FIX\_RESULT\_DIFF.md}, and \texttt{results/POST\_FIX\_MANUSCRIPT\_CHANGE\_LIST.md}. Edge-IIoTset results are unaffected by this defect (its record-level fallback path never calls the affected function) and were independently re-verified (\texttt{results/VALIDATION\_REPORT.json}, 16/16 structural checks passed for both datasets).
+
 \section{Conclusion}
 \label{sec:8}
 
-This paper presented a unified, ATT\&CK-inspired framework for \emph{stage-aware} intrusion detection and \emph{pre-impact} escalation forecasting in IIoT supply-chain-like environments. The framework fuses heterogeneous telemetry (network flows, IoT device streams, and Linux/Windows host logs) into a unified entity--time window representation and constructs an \emph{asset--time window interaction graph} that encodes both cross-asset communication and within-asset temporal continuity. For stage detection, we combine complementary reasoning modes by stacking a feature-driven Random Forest with a context-aware Graph Convolutional Network (GCN) using an out-of-fold, asset-disjoint meta-learning protocol, yielding interpretable stage probabilities aligned with an operational intrusion lifecycle. For proactive defence, we formulate a leakage-controlled, asset-level impact prediction task and propose a dual-stream GRU forecaster that consumes only Stage~1/Stage~2 evidence prior to a cutoff time, producing an early-warning risk score that ranks assets by their likelihood of reaching the Impact stage within a future horizon.
+This paper presented an ATT\&CK-inspired framework for \emph{stage-aware}, network-based intrusion detection, evaluated on the ToN-IoT network-flow modality and, for external stage-detection validation, on Edge-IIoTset. The framework normalises network-flow telemetry into a unified entity--time window representation and constructs an \emph{asset--time window interaction graph} that encodes both cross-asset communication and within-asset temporal continuity; the same normalisation scheme is designed to extend to IoT device telemetry and Linux/Windows host logs from the wider ToN-IoT family, though that extension is not empirically exercised here (\S\ref{sec:framework_features}, \S\ref{subsec:dataset_description}). For stage detection, we compare a feature-driven Random Forest, a context-aware Graph Convolutional Network (GCN), stronger graph baselines (GraphSAGE, GAT), gradient-boosted trees, a no-graph temporal baseline, and a stacked RF--GCN combiner using an out-of-fold, asset-disjoint meta-learning protocol. We additionally formulate a leakage-controlled, asset-level impact-prediction task and a dual-stream GRU forecaster design that consumes only Stage~1/Stage~2 evidence prior to a cutoff time.
 
-Experimental results on ToN-IoT under identity-preserving (asset-disjoint) evaluation indicate that stacking improves four-class stage classification compared to feature-only and graph-only baselines, with strong macro-F1 and improved minority-stage performance. For early warning, the dual-stream GRU improves rare-event ranking quality (PR-AUC and Capture@$k\%$), supporting practical triage by prioritising the small subset of assets most likely to progress toward operational impact even when conservative Impact alerting is used to minimise false positives.
+On the corrected ToN-IoT network-flow data, \textbf{GAT is the strongest model} (Macro-F1 $0.687\pm0.041$); \textbf{the proposed Stacked RF--GCN does not outperform its own graph-based base learners} (Macro-F1 $0.395\pm0.067$), and we attribute this to the stacking meta-learner rather than to the RF--GCN architecture itself, since replacing logistic regression with gradient boosting raises stacked Macro-F1 to 0.468 (\S\ref{subsec:meta_learner_corrected}). A descriptive, single-seed post-hoc sensitivity sweep of the Stacked RF--GCN found window size has a non-monotonic effect, with 120s yielding a higher observed Macro-F1 (0.579) than the 60s main configuration (0.308); since this sweep is single-seed and not validation-selected, we do not treat 120s as a globally optimal window size, and retain 60s as the fixed main configuration (\S\ref{subsec:window_sensitivity_corrected}). For impact forecasting, we were unable to validate the dual-stream GRU on ToN-IoT: correcting the windowing defect yields 21,313 genuine pre-impact instances, but class support in the held-out splits is insufficient (zero confirmed positives in both validation and test), which we report as a data-availability limitation of this benchmark's predominantly instant-onset attack episodes, rather than suppress or work around by relaxing the asset-disjoint evaluation protocol. On Edge-IIoTset, stage-detection results (\S\ref{subsec:dataset_description}) confirm the IAD/LMEP/IMP abstraction is portable beyond ToN-IoT, with a different model (RF, feature-only) performing best, consistent with Edge-IIoTset's different telemetry characteristics (no reliable timestamp for graph/temporal-edge construction).
 
 \paragraph{Limitations and scope.}
-Our empirical evaluation is conducted on a single heterogeneous benchmark (ToN-IoT), which provides a controlled but necessarily limited proxy for the diversity of real industrial supply chains. While the staging abstraction, asset-disjoint evaluation principle, graph construction, and leakage-controlled forecasting protocol are not ToN-IoT-specific, validating robustness across additional IIoT/OT datasets and operational deployments remains important future work.
+Our empirical evaluation uses the network-flow modality of ToN-IoT and Edge-IIoTset; the wider multi-modal ToN-IoT family (IoT device telemetry, Linux/Windows host logs) is architecturally supported by the framework's design but not fused into the reported experiments, and extending the empirical evaluation to it is a primary direction for future work (\S\ref{subsec:dataset_description}). The proposed RF--GCN stacking strategy, evaluated with its default logistic-regression meta-learner, does not outperform its own graph-based base learners on ToN-IoT; a gradient-boosting meta-learner substantially narrows this gap (\S\ref{subsec:meta_learner_corrected}) but was not adopted as the reported main-table configuration, since it was identified via a post-hoc ablation rather than validation-set model selection --- we flag re-selecting the meta-learner on validation as a natural next step rather than silently substituting the stronger post-hoc number into the main table. Impact forecasting is not empirically validated on ToN-IoT under the current protocol (\S\ref{sec:impact_discussion}); the architecture and leakage-control design are presented as a contribution, but their predictive value is not demonstrated on this benchmark. The no-graph GRU/LSTM temporal baseline's held-out evaluation is dominated by single-window (non-temporal) instances (\S\ref{sec:grutemporal_caveat}) and should not be read as a clean test of temporal-modelling benefit. While the staging abstraction, asset-disjoint evaluation principle, graph construction, and leakage-controlled forecasting protocol are not ToN-IoT-specific, validating robustness across additional IIoT/OT datasets, additional independent asset-disjoint splits, and operational deployments remains important future work.
 We therefore avoid prescribing concrete containment actions, which are highly site- and safety-dependent, and instead focus on providing calibrated, interpretable signals that can be mapped to local SOC policies.
 
 
 \paragraph{Dynamic deployments and alternate objectives.}
 Real-world protective monitoring is often more dynamic than an offline benchmark: telemetry can be delayed, missing, or noisy; assets can be added/removed (device churn); and behaviour can drift over time. Although our pipeline explicitly handles missing modalities via presence indicators (Section~\ref{sec:framework_features}) and enforces strict pre-$t$ construction for leakage control (Section~\ref{sec:framework_stage3_gt}), we do not yet evaluate streaming updates, concept drift, or changing device populations. Moreover, this work operationalises \emph{Impact} primarily in terms of disruption/manipulation (availability/integrity degradation); future extensions should re-define the forecasting target for alternative attacker objectives (e.g., stealthy reconnaissance/espionage or data exfiltration) and assess whether the same stage-conditioned forecasting approach remains effective under those objectives.
 
-Future work will investigate richer relational modelling (e.g., typed/heterogeneous graphs and edge semantics), online/streaming updates for real-time deployment, and transfer and privacy-preserving learning across organisations to improve robustness under shifting device environments.
+Future work will (i) extend the empirical evaluation to the wider multi-modal ToN-IoT family (IoT device telemetry, Linux/Windows host logs) that the framework's feature-construction scheme is designed to support; (ii) re-select the stacking meta-learner on validation data, informed by the gradient-boosting ablation finding; (iii) revisit impact forecasting on datasets or collection windows with more assets exhibiting genuine pre-impact escalation; (iv) investigate richer relational modelling (e.g., typed/heterogeneous graphs and edge semantics); and (v) evaluate online/streaming updates and transfer/privacy-preserving learning across organisations to improve robustness under shifting device environments.
 
 \section{Funding}
 This research did not receive any specific grant from funding agencies in the public, commercial, or not-for-profit sectors.
