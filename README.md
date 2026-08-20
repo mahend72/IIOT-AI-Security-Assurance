@@ -10,12 +10,10 @@ The pipeline:
    header and matches it against config-provided candidates).
 2. Maps raw attack labels into four stages: **Benign, IAD** (Initial Access & Discovery), **LMEP** (Lateral Movement / Escalation / Persistence), **IMP**
    (Impact).
-3. Builds **asset-time-window instances** at a configurable window size Δt.
-4. Constructs an **asset-time interaction graph**: nodes are asset-window
-   instances; *interaction edges* connect assets that communicated in the same
+3. Builds **asset-time-window instances** at a configurable window size Δt. 
+4. Constructs an **asset-time interaction graph**: nodes are asset-window instances; *interaction edges* connect assets that communicated in the same
    window; *temporal edges* connect an asset's consecutive observed windows.
-5. Trains a **stage detector**: Random Forest (tabular) + GCN (graph), combined
-   by a logistic-regression **stacking meta-learner** trained on out-of-fold,
+5. Trains a **stage detector**: Random Forest (tabular) + GCN (graph), combined by a logistic-regression **stacking meta-learner** trained on out-of-fold,
    asset-disjoint base-learner predictions.
 6. Trains an **impact forecaster**: a dual-stream GRU (one stream gated by
    IAD evidence, one by LMEP evidence) that predicts whether an asset reaches
