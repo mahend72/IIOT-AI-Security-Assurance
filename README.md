@@ -6,11 +6,9 @@ A reproducible implementation of a stage-aware intrusion detection framework for
 
 The pipeline:
 
-1. Loads and preprocesses heterogeneous telemetry via a **schema-inspecting
-   dataset adapter** (never assumes a column exists — it reads the real CSV
+1. Loads and preprocesses heterogeneous telemetry via a **schema-inspecting dataset adapter** (never assumes a column exists — it reads the real CSV
    header and matches it against config-provided candidates).
-2. Maps raw attack labels into four stages: **Benign, IAD** (Initial Access &
-   Discovery), **LMEP** (Lateral Movement / Escalation / Persistence), **IMP**
+2. Maps raw attack labels into four stages: **Benign, IAD** (Initial Access & Discovery), **LMEP** (Lateral Movement / Escalation / Persistence), **IMP**
    (Impact).
 3. Builds **asset-time-window instances** at a configurable window size Δt.
 4. Constructs an **asset-time interaction graph**: nodes are asset-window
