@@ -23,12 +23,49 @@ stage of the pipeline meaningfully.
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+SYNTHETIC_MARKER_NAME = ".SYNTHETIC_DATA_MARKER"
+
+
+class RealDataOverwriteError(RuntimeError):
+    """Raised when this script would overwrite a file that is not itself
+    prior output of this generator (i.e. possibly a real dataset), and
+    --force was not given. See `_refuse_if_unsafe_overwrite`."""
+
+
+def _refuse_if_unsafe_overwrite(out_path: Path, force: bool) -> None:
+    """Refuse to overwrite `out_path` unless it doesn't exist yet, it was
+    itself produced by a PRIOR run of this generator (marked by
+    SYNTHETIC_MARKER_NAME next to it, so regenerating smoke-test data is
+    still a one-liner), or the caller explicitly passed --force.
+
+    This is the only thing standing between this script and silently
+    clobbering a real ToN-IoT/Edge-IIoTset CSV with synthetic data.
+    """
+    if not out_path.exists():
+        return
+    marker = out_path.parent / SYNTHETIC_MARKER_NAME
+    if marker.exists():
+        return  # only ever overwriting our own previous synthetic output
+    if not force:
+        raise RealDataOverwriteError(
+            f"Refusing to overwrite {out_path}: it already exists and is NOT marked as "
+            f"prior output of this generator (no {SYNTHETIC_MARKER_NAME} found in "
+            f"{out_path.parent}), so it may be a real dataset. Re-run with --force only "
+            f"if you are certain this file does not contain real data, or point "
+            f"--out-root at a different (empty) directory instead."
+        )
+    print(
+        f"WARNING: --force given -- overwriting {out_path}, which is NOT marked as prior "
+        f"synthetic-generator output and may contain a real dataset. Proceeding anyway.",
+        file=sys.stderr,
+    )
 
 TONIOT_IAD = ["scanning", "password", "xss"]
 TONIOT_LMEP = ["backdoor", "injection", "mitm"]
@@ -269,7 +306,7 @@ def _write_synthetic_marker(dataset_dir: Path, args: argparse.Namespace) -> None
     import json
     from datetime import datetime, timezone
 
-    marker = dataset_dir / ".SYNTHETIC_DATA_MARKER"
+    marker = dataset_dir / SYNTHETIC_MARKER_NAME
     marker.write_text(json.dumps({
         "generated_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "generator": "scripts/generate_synthetic_data.py",
@@ -284,28 +321,47 @@ def main():
     ap.add_argument("--hours", type=float, default=6.0)
     ap.add_argument("--rate-hz", type=float, default=0.05, help="mean records/sec per asset")
     ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument("--out-root", default="data/raw",
+                     help="directory (relative to the repo root, or absolute) under which "
+                          "<out-root>/toniot/ and <out-root>/edgeiiotset/ are written. Defaults to "
+                          "data/raw, the same location real datasets are placed in (matches the "
+                          "documented local smoke-test workflow) -- point this at a dedicated "
+                          "directory such as data/synthetic to guarantee no real-data path is ever "
+                          "touched (used by CI).")
+    ap.add_argument("--force", action="store_true",
+                     help="allow overwriting a target file that is NOT marked as this generator's "
+                          "own prior output (i.e. may be a real dataset). Prints a loud warning "
+                          "when this actually happens. Without this flag such a target is refused.")
     ap.add_argument("--clean-markers", action="store_true",
                      help="Only delete the .SYNTHETIC_DATA_MARKER files (e.g. after you've manually "
                           "replaced the CSVs with real data) -- does NOT generate/overwrite any data.")
     args = ap.parse_args()
 
-    toniot_dir = PROJECT_ROOT / "data/raw/toniot"
-    edge_dir = PROJECT_ROOT / "data/raw/edgeiiotset"
+    toniot_dir = PROJECT_ROOT / args.out_root / "toniot"
+    edge_dir = PROJECT_ROOT / args.out_root / "edgeiiotset"
 
     if args.clean_markers:
         for d in (toniot_dir, edge_dir):
-            marker = d / ".SYNTHETIC_DATA_MARKER"
+            marker = d / SYNTHETIC_MARKER_NAME
             if marker.exists():
                 marker.unlink()
                 print(f"removed {marker}")
         return
 
+    toniot_csv = toniot_dir / "Train_Test_Network.csv"
+    edge_csv = edge_dir / "ML-EdgeIIoT-dataset.csv"
+
+    # Check BOTH targets before writing either, so a refusal never leaves
+    # one dataset overwritten and the other untouched.
+    _refuse_if_unsafe_overwrite(toniot_csv, args.force)
+    _refuse_if_unsafe_overwrite(edge_csv, args.force)
+
     generate_toniot(
-        toniot_dir / "Train_Test_Network.csv",
+        toniot_csv,
         args.n_assets, args.attacked_frac, args.seed, args.hours, args.rate_hz,
     )
     generate_edgeiiotset(
-        edge_dir / "ML-EdgeIIoT-dataset.csv",
+        edge_csv,
         args.n_assets, args.attacked_frac, args.seed, args.hours, args.rate_hz,
     )
     _write_synthetic_marker(toniot_dir, args)

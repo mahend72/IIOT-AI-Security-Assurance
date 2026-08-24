@@ -1,0 +1,57 @@
+name: Release
+
+# Reproducible GitHub release automation for a research codebase -- there is
+# no production service to deploy. Tagging a commit `vX.Y.Z` builds a
+# source archive of that exact tagged revision and publishes it as a
+# GitHub Release with auto-generated notes.
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out tagged revision
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: Lightweight validation (syntax + test suite)
+        run: |
+          python -m compileall -q src scripts
+          pytest tests/ -q
+
+      - name: Build reproducible source archive
+        run: |
+          ARCHIVE="iiot-ai-security-assurance-${GITHUB_REF_NAME}.tar.gz"
+          git archive --format=tar.gz \
+            --prefix="iiot-ai-security-assurance-${GITHUB_REF_NAME}/" \
+            -o "${ARCHIVE}" HEAD
+          echo "ARCHIVE=${ARCHIVE}" >> "$GITHUB_ENV"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" "${ARCHIVE}" \
+            --title "${GITHUB_REF_NAME}" \
+            --generate-notes

@@ -2,6 +2,7 @@ __pycache__/
 *.pyc
 .ipynb_checkpoints/
 data/raw/*/*.csv
+data/synthetic/
 data/processed/*
 !data/processed/.gitkeep
 results/**/*.csv

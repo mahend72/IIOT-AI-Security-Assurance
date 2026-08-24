@@ -56,6 +56,7 @@ def prepare_dataset(
     seed: Optional[int] = None,
     mapping_variant: str = "primary",
     preloaded_bundle: Optional[Any] = None,
+    raw_dir: Optional[str] = None,
 ) -> PreparedDataset:
     """Runs the full data->graph preparation pipeline for one dataset.
 
@@ -70,6 +71,11 @@ def prepare_dataset(
     safe because everything this function derives from the bundle
     (stage labels, windows, features, graph) is recomputed fresh from it
     on every call regardless.
+    `raw_dir` overrides `dataset.raw_dir` in the loaded config, e.g. to
+    point at a dedicated synthetic-data directory (data/synthetic/<name>/)
+    instead of the real data/raw/<name>/ path -- used by the CI smoke test
+    so it can never read from (or be confused with) real data. Default None
+    leaves the real-data path untouched.
     """
     cfg = load_dataset_config(dataset_name)
     sm_cfg = load_stage_mapping_config(dataset_name, variant=mapping_variant)
@@ -77,6 +83,8 @@ def prepare_dataset(
         cfg = override(cfg, "window.delta_t_seconds", delta_t_seconds)
     if seed is not None:
         cfg = override(cfg, "split.seed", seed)
+    if raw_dir is not None:
+        cfg = override(cfg, "dataset.raw_dir", raw_dir)
 
     delta_t = cfg["window"]["delta_t_seconds"]
     effective_seed = cfg["split"]["seed"]

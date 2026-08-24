@@ -38,10 +38,14 @@ def main():
     ap.add_argument("--delta-t", type=float, default=None, help="override window.delta_t_seconds")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--tag", default="", help="optional suffix for output filenames (used by sensitivity sweeps)")
+    ap.add_argument("--raw-dir", default=None,
+                     help="override dataset.raw_dir (e.g. a dedicated synthetic-data directory such "
+                          "as data/synthetic/<dataset> for CI smoke tests) -- default uses the real "
+                          "data/raw/<dataset>/ path from the config")
     args = ap.parse_args()
 
     set_global_seed(args.seed)
-    prepared = prepare_dataset(args.dataset, delta_t_seconds=args.delta_t, seed=None)
+    prepared = prepare_dataset(args.dataset, delta_t_seconds=args.delta_t, seed=None, raw_dir=args.raw_dir)
 
     result = train_stage_detector(
         prepared.windows_df, prepared.X, prepared.y, prepared.graph, prepared.cfg,

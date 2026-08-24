@@ -1,5 +1,7 @@
 # Stage-Aware AI Security Assurance for IIoT
 
+[![CI](https://github.com/mahend72/iiot-ai-security-assurance/actions/workflows/ci.yml/badge.svg)](https://github.com/mahend72/iiot-ai-security-assurance/actions/workflows/ci.yml)
+
 This repository is an AI security assurance study: it evaluates how
 trustworthy graph- and feature-based machine learning models are for staged
 intrusion detection in Industrial IoT (IIoT) environments, under an
@@ -127,6 +129,57 @@ of the same assurance posture):
 All 16 checks (8 categories × 2 datasets) currently pass:
 `results/VALIDATION_REPORT.json`.
 
+## Continuous Integration
+
+The [`CI` workflow](.github/workflows/ci.yml) runs on every push and pull
+request to `main`, on Python 3.10 and 3.11. It checks **code integrity and
+assurance safeguards**, not production readiness — there is no deployment
+target for this project. Each run:
+
+1. Byte-compiles every module in `src/` and `scripts/` to catch syntax
+   errors early.
+2. Runs the `pytest` suite in `tests/`, including regression tests for the
+   ToN-IoT windowing fix (see
+   [Reproducibility and Data Correction](#reproducibility-and-data-correction)),
+   a dedicated assurance-property suite
+   (`tests/test_assurance_properties.py`) that re-runs several of the
+   [Assurance and Leakage Controls](#assurance-and-leakage-controls) checks
+   above — asset-disjoint splitting, no identity leakage across partitions,
+   train-only preprocessing fitting, no IMP-stage evidence reaching the
+   forecaster, no cross-split graph/neighbourhood leakage, valid
+   stage-mapping configuration, and the synthetic-data guard — against a
+   small in-memory synthetic dataset, and a generator-safety regression
+   suite (`tests/test_generate_synthetic_data_safety.py`, see below), all
+   without any real data present.
+3. Generates a small synthetic dataset into the dedicated `data/synthetic/`
+   directory (`python scripts/generate_synthetic_data.py --out-root
+   data/synthetic ...` — never `data/raw/`) and runs the stage-detection
+   pipeline end-to-end on it (`python scripts/run_stage_detection.py
+   --dataset toniot --raw-dir data/synthetic/toniot ...`) as a smoke test
+   that the full pipeline still executes.
+
+**Synthetic-data overwrite safety.** `scripts/generate_synthetic_data.py`
+refuses to overwrite any target file that is not itself prior output of
+the generator (i.e. that has no `.SYNTHETIC_DATA_MARKER` next to it) —
+this is what stops it from ever silently clobbering a real dataset placed
+in `data/raw/<dataset>/`. Overwriting such a file requires an explicit
+`--force` flag and prints a loud warning when used. `--out-root` selects
+where synthetic data is written (default `data/raw`, matching the local
+smoke-test workflow below; CI uses a dedicated `data/synthetic` instead).
+See `tests/test_generate_synthetic_data_safety.py` for the regression
+tests pinning this behavior.
+
+**CI does not use, download, or require the real ToN-IoT or Edge-IIoTset
+datasets**, and its synthetic-data smoke test carries no scientific meaning
+— it does not reproduce, and is not a substitute for, the
+[Main Results](#main-results) reported below. Those come only from the real
+datasets run locally, gated by the synthetic-data guard described above.
+
+Tagged releases (`vX.Y.Z`) additionally trigger the
+[`Release` workflow](.github/workflows/release.yml), which re-runs the same
+lightweight validation against the tagged commit and publishes a
+reproducible source archive as a GitHub Release.
+
 ## Architecture
 
 The pipeline (`src/pipeline.py::prepare_dataset`) is shared, unmodified,
@@ -222,6 +275,13 @@ either real dataset. Every results-generating script refuses to run
 (`SyntheticDataGuardError`) if the synthetic-data marker is still present
 in `data/raw/<dataset>/` — delete it and place the real CSV before drawing
 any conclusion.
+
+The generator itself also refuses to **overwrite** a file in
+`data/raw/<dataset>/` that isn't already its own prior output (i.e. that
+has no `.SYNTHETIC_DATA_MARKER` next to it) — so running the command above
+can never silently clobber a real dataset you've already placed there.
+Pass `--force` to override this (only if you're certain the target isn't
+real data), or `--out-root <dir>` to write elsewhere entirely.
 
 ## Main Results
 

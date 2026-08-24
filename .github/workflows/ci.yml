@@ -1,0 +1,60 @@
+name: CI
+
+# Software-quality and assurance-property validation for a research
+# pipeline, not a production deployment gate. Runs entirely on the
+# repository's synthetic-data generator -- the real ToN-IoT / Edge-IIoTset
+# datasets are not bundled (license + size) and are never required here.
+# See scripts/run_final_validation.py for the equivalent checks run against
+# the real data locally.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11"]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: Python syntax validation (src/, scripts/)
+        run: python -m compileall -q src scripts
+
+      - name: Run test suite (unit tests + assurance-property checks)
+        run: pytest tests/ -v
+
+      - name: Generate small synthetic dataset (dedicated synthetic-only path -- never data/raw/)
+        run: >
+          python scripts/generate_synthetic_data.py
+          --out-root data/synthetic
+          --n-assets 20 --hours 2 --rate-hz 0.05 --seed 123
+
+      - name: End-to-end smoke test (stage-detection pipeline on synthetic data)
+        run: >
+          python scripts/run_stage_detection.py
+          --dataset toniot --raw-dir data/synthetic/toniot --n-folds 2 --seed 123
