@@ -610,13 +610,4 @@ manuscript/        current_manuscript.tex
   supply-chain telemetry** — see
   [Security Problem and Threat Model](#security-problem-and-threat-model).
 
-## Citation / Related Paper
 
-A manuscript describing this work is maintained at
-`manuscript/current_manuscript.tex`. As of this README revision, the
-manuscript's ToN-IoT results section is under active reconciliation with
-the corrected, single-modality (network-flow-only) pipeline this
-repository actually implements and reports above; see
-`results/POST_FIX_MANUSCRIPT_CHANGE_LIST.md` for the audit trail. Cite the
-manuscript once that reconciliation is complete, or cite this repository
-directly in the interim.
