@@ -12,3 +12,4 @@ results/**/*.png
 *.pt
 *.pkl
 .DS_Store
+manuscript/
